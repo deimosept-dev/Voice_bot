@@ -1,4 +1,5 @@
 import asyncio
+import html
 import json
 import os
 import sqlite3
@@ -94,6 +95,88 @@ def _fmt_int(amount: int) -> str:
     return f"{amount:,}".replace(",", " ")
 
 
+def build_valuation(data: dict) -> dict:
+    collection_points = max(0, int(_num(data.get("collection_points"), 0)))
+    rank_key = str(data.get("rank") or "none")
+    winrate = max(0.0, min(100.0, _num(data.get("winrate"), 0.0)))
+    matches = max(0, int(_num(data.get("matches"), 0)))
+
+    skins_raw = data.get("skins") if isinstance(data.get("skins"), dict) else {}
+    skins_pts = 0
+    skins_rub = 0
+    chosen_skins = []
+
+    for key, (label, pts_per_one, rub_per_one, _) in SKIN_SPECS.items():
+        cnt = max(0, int(_num(skins_raw.get(key), 0)))
+        if cnt > 0:
+            skins_pts += cnt * pts_per_one
+            skins_rub += cnt * rub_per_one
+            chosen_skins.append((label, cnt))
+
+    manual_rub = round((collection_points / 1000.0) * PRICE_PER_1000_PTS) if collection_points > 0 else 0
+    effective_pts = max(collection_points, skins_pts)
+    collection_rub = max(manual_rub, skins_rub)
+
+    rank_name, rank_price = RANKS.get(rank_key, RANKS["none"])
+    wr_bonus = _winrate_bonus(winrate, matches)
+
+    total_price = BASE_PRICE + collection_rub + rank_price + wr_bonus
+    quick_price = round(total_price * QUICK_SALE_FACTOR)
+
+    return {
+        "collection_points": collection_points,
+        "effective_pts": effective_pts,
+        "collection_rub": collection_rub,
+        "rank_key": rank_key,
+        "rank_name": rank_name,
+        "rank_price": rank_price,
+        "winrate": winrate,
+        "matches": matches,
+        "wr_bonus": wr_bonus,
+        "chosen_skins": chosen_skins,
+        "total_price": total_price,
+        "quick_price": quick_price,
+    }
+
+
+def format_valuation_message(res: dict) -> str:
+    breakdown_lines = []
+
+    if res["collection_rub"] > 0:
+        breakdown_lines.append(
+            f"• Коллекция ({_fmt_int(res['effective_pts'])} pts): <b>+{_fmt_rub(res['collection_rub'])}</b>"
+        )
+
+    if res["rank_price"] > 0:
+        safe_rank = html.escape(res["rank_name"])
+        breakdown_lines.append(
+            f"• Ранг ({safe_rank}): <b>+{_fmt_rub(res['rank_price'])}</b>"
+        )
+
+    if res["wr_bonus"] > 0:
+        breakdown_lines.append(
+            f"• Винрейт ({res['winrate']:g}%, {_fmt_int(res['matches'])} матчей): <b>+{_fmt_rub(res['wr_bonus'])}</b>"
+        )
+
+    parts = ["💎 <b>Оценка аккаунта MLBB</b>"]
+
+    if breakdown_lines:
+        parts.append("<b>Параметры и бонусы</b>\n" + "\n".join(breakdown_lines))
+    else:
+        parts.append("• Пустой аккаунт без очков коллекции и бонусов.")
+
+    if res["chosen_skins"]:
+        skins_str = ", ".join(f"{html.escape(lbl)}: {cnt}" for lbl, cnt in res["chosen_skins"])
+        parts.append(f"<b>Облики</b>\n{skins_str}")
+
+    summary_lines = [f"💰 <b>Рыночная оценка: {_fmt_rub(res['total_price'])}</b>"]
+    if res["total_price"] > 0:
+        summary_lines.append(f"⚡ Быстрая продажа (-15%): <b>{_fmt_rub(res['quick_price'])}</b>")
+
+    parts.append("\n".join(summary_lines))
+    return "\n\n".join(parts)
+
+
 dp = Dispatcher()
 
 
@@ -120,63 +203,8 @@ async def handle_webapp(message: Message):
             return
 
         d = payload.get("data") if isinstance(payload.get("data"), dict) else {}
-
-        collection_points = max(0, int(_num(d.get("collection_points"), 0)))
-        rank_key = str(d.get("rank") or "none")
-        winrate = max(0.0, min(100.0, _num(d.get("winrate"), 0.0)))
-        matches = max(0, int(_num(d.get("matches"), 0)))
-
-        skins = d.get("skins") if isinstance(d.get("skins"), dict) else {}
-        skins_pts = 0
-        skins_rub = 0
-        chosen = []
-
-        for key, (label, pts_per_one, rub_per_one, _) in SKIN_SPECS.items():
-            cnt = max(0, int(_num(skins.get(key), 0)))
-            if cnt > 0:
-                skins_pts += cnt * pts_per_one
-                skins_rub += cnt * rub_per_one
-                chosen.append(f"{label}: {cnt}")
-
-        manual_rub = round((collection_points / 1000.0) * PRICE_PER_1000_PTS) if collection_points > 0 else 0
-        effective_pts = max(collection_points, skins_pts)
-        collection_rub = max(manual_rub, skins_rub)
-
-        bonuses = 0
-        details = []
-
-        if collection_rub > 0:
-            bonuses += collection_rub
-            details.append(f"• Коллекция ({_fmt_int(effective_pts)} pts): <b>+{_fmt_rub(collection_rub)}</b>")
-
-        rank_name, rank_price = RANKS.get(rank_key, RANKS["none"])
-        if rank_price > 0:
-            bonuses += rank_price
-            details.append(f"• Ранг ({rank_name}): <b>+{_fmt_rub(rank_price)}</b>")
-
-        wr_bonus = _winrate_bonus(winrate, matches)
-        if wr_bonus > 0:
-            bonuses += wr_bonus
-            details.append(f"• Винрейт ({winrate:g}%, {_fmt_int(matches)} матчей): <b>+{_fmt_rub(wr_bonus)}</b>")
-
-        if chosen:
-            details.append("• Облики: " + ", ".join(chosen))
-
-        total_price = BASE_PRICE + bonuses
-        quick_price = round(total_price * QUICK_SALE_FACTOR)
-
-        if not details:
-            details.append("• Пустой аккаунт без очков коллекции и бонусов.")
-
-        details_text = "\n".join(details)
-        quick_line = f"\n⚡ Быстрая продажа (-15%): <b>{_fmt_rub(quick_price)}</b>" if total_price > 0 else ""
-
-        answer = (
-            f"<b>📊 Оценка аккаунта MLBB</b>\n\n"
-            f"{details_text}\n\n"
-            f"<b>💰 Рыночная оценка: {_fmt_rub(total_price)}</b>"
-            f"{quick_line}"
-        )
+        res = build_valuation(d)
+        answer = format_valuation_message(res)
 
         await message.answer(answer, parse_mode="HTML")
         if message.from_user:
