@@ -3,47 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MLBB Account Valuer</title>
+    <title>MLBB Оценщик</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --bg: #0f0f13; --card: rgba(30, 30, 40, 0.7); --neon: #00f0ff; --text: #ffffff; }
-        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { font-size: 24px; background: linear-gradient(90deg, var(--neon), #8a2be2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; }
-        .upload-area { background: var(--card); border: 2px dashed rgba(0, 240, 255, 0.3); border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; }
-        .btn { background: linear-gradient(90deg, #8a2be2, var(--neon)); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; display: none; }
-        .file-item { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 12px; }
-        #loading { display: none; text-align: center; margin-top: 50px; }
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
+
+        :root {
+            --bg-color: #0a0a10;
+            --card-bg: rgba(20, 20, 35, 0.6);
+            --neon-blue: #00d2ff;
+            --neon-purple: #8a2be2;
+            --text-main: #ffffff;
+            --text-sub: #8b8b9f;
+        }
+
+        body {
+            background: radial-gradient(circle at top left, #1a1a2e, #0a0a10);
+            color: var(--text-main);
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            margin: 0;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--neon-blue), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(0, 210, 255, 0.3);
+        }
+
+        .header p {
+            color: var(--text-sub);
+            font-size: 13px;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        .upload-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone {
+            border: 2px dashed rgba(0, 210, 255, 0.3);
+            border-radius: 16px;
+            padding: 30px 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0, 210, 255, 0.02);
+        }
+
+        .upload-zone:active {
+            background: rgba(0, 210, 255, 0.1);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 20px rgba(0, 210, 255, 0.2);
+        }
+
+        .icon {
+            font-size: 46px;
+            margin-bottom: 10px;
+            display: block;
+            filter: drop-shadow(0 0 10px rgba(0, 210, 255, 0.5));
+        }
+
+        .btn-calc {
+            background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            width: 100%;
+            margin-top: 20px;
+            cursor: pointer;
+            display: none;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 6px 20px rgba(138, 43, 226, 0.4);
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+
+        .btn-calc:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 10px rgba(138, 43, 226, 0.6);
+        }
+
+        .file-list {
+            margin-top: 20px;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            border-left: 3px solid var(--neon-blue);
+            animation: fadeIn 0.4s ease;
+        }
+
+        /* Экран загрузки */
+        #loading-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .spinner-box {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            margin-bottom: 25px;
+        }
+
+        .spinner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid transparent;
+            border-top-color: var(--neon-blue);
+            border-bottom-color: var(--neon-purple);
+            border-radius: 50%;
+            animation: spin 1.5s linear infinite;
+        }
+
+        .spinner-inner {
+            position: absolute;
+            width: 70%;
+            height: 70%;
+            top: 15%;
+            left: 15%;
+            border: 3px solid transparent;
+            border-left-color: #fff;
+            border-radius: 50%;
+            animation: spinReverse 1s linear infinite;
+        }
+
+        .loading-text {
+            color: var(--neon-blue);
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            animation: pulse 1.5s infinite;
+        }
+
+        /* Анимации */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spinReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        /* Скроллбар */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(138, 43, 226, 0.5); border-radius: 10px; }
     </style>
 </head>
 <body>
-    <div class="header"><h1>MLBB Оценщик</h1><p>Загрузи скриншоты</p></div>
-    <div id="main">
-        <div class="upload-area" id="drop" onclick="document.getElementById('file').click()">
-            <div style="font-size: 40px;">📸</div>
-            <div>Нажми, чтобы выбрать фото</div>
-            <input type="file" id="file" multiple accept="image/*" style="display: none;">
-        </div>
-        <div id="list"></div>
-        <button class="btn" id="calc">Узнать стоимость</button>
+
+    <div class="header">
+        <h1>MLBB Оценщик</h1>
+        <p>Узнай реальную стоимость аккаунта</p>
     </div>
-    <div id="loading"><h2>Анализируем...</h2></div>
+
+    <div id="main-screen" class="upload-card">
+        <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+            <span class="icon">📸</span>
+            <div style="font-weight: 600; font-size: 15px; margin-bottom: 5px;">Загрузить скриншоты</div>
+            <div style="font-size: 11px; color: var(--text-sub);">Профиль, скины, статистика (от 1 до 20 фото)</div>
+            <input type="file" id="file-input" multiple accept="image/*" style="display: none;">
+        </div>
+        
+        <div class="file-list" id="file-list"></div>
+        
+        <button class="btn-calc" id="calculate-btn">Анализировать</button>
+    </div>
+
+    <div id="loading-screen">
+        <div class="spinner-box">
+            <div class="spinner"></div>
+            <div class="spinner-inner"></div>
+        </div>
+        <div class="loading-text" id="loading-text">Инициализация...</div>
+    </div>
 
     <script>
-        let tg = window.Telegram.WebApp; tg.expand();
-        let files = [];
-        document.getElementById('file').addEventListener('change', (e) => {
-            for (let f of e.target.files) files.push(f);
-            document.getElementById('list').innerHTML = files.map(f => `<div class="file-item">🖼 ${f.name}</div>`).join('');
-            document.getElementById('calc').style.display = files.length > 0 ? 'block' : 'none';
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.setHeaderColor('#0a0a10');
+        tg.setBackgroundColor('#0a0a10');
+
+        const fileInput = document.getElementById('file-input');
+        const fileList = document.getElementById('file-list');
+        const calculateBtn = document.getElementById('calculate-btn');
+        const mainScreen = document.getElementById('main-screen');
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingText = document.getElementById('loading-text');
+
+        let filesArray = [];
+
+        fileInput.addEventListener('change', (e) => {
+            for (let file of e.target.files) {
+                if (file.type.startsWith('image/')) filesArray.push(file);
+            }
+            renderFiles();
         });
-        document.getElementById('calc').addEventListener('click', () => {
-            document.getElementById('main').style.display = 'none';
-            document.getElementById('loading').style.display = 'block';
-            setTimeout(() => {
-                tg.sendData(JSON.stringify({ action: "calculate", files_count: files.length }));
-                tg.close();
-            }, 2000);
+
+        function renderFiles() {
+            fileList.innerHTML = '';
+            filesArray.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `<span>🖼 Фото ${index + 1}</span> <span>${(file.size / 1024 / 1024).toFixed(1)} MB</span>`;
+                fileList.appendChild(div);
+            });
+
+            if (filesArray.length > 0) {
+                calculateBtn.style.display = 'block';
+                calculateBtn.innerText = `Оценить (${filesArray.length} фото)`;
+            } else {
+                calculateBtn.style.display = 'none';
+            }
+        }
+
+        calculateBtn.addEventListener('click', () => {
+            mainScreen.style.display = 'none';
+            loadingScreen.style.display = 'flex';
+
+            const steps = [
+                "Загрузка изображений...",
+                "Распознавание скинов...",
+                "Анализ ранга и винрейта...",
+                "Формирование отчета..."
+            ];
+            
+            let currentStep = 0;
+            const interval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    loadingText.innerText = steps[currentStep];
+                    currentStep++;
+                } else {
+                    clearInterval(interval);
+                    tg.sendData(JSON.stringify({
+                        action: "calculate",
+                        files_count: filesArray.length
+                    }));
+                    tg.close();
+                }
+            }, 1200); // 4 шага по 1.2 сек = ~5 секунд анимации
         });
     </script>
 </body>
