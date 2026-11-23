@@ -8,14 +8,14 @@ from datetime import datetime
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import (
-    Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+    Message, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
 )
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
 WEBAPP_URL = "https://deimosept-dev.github.io/Voice_bot/"
 
-# Твой ID вписан сюда
+# Твой ID
 ADMIN_ID = 1636139244 
 
 def db():
@@ -49,13 +49,17 @@ dp = Dispatcher()
 async def cmd_start(message: Message):
     log_action(message.from_user.id, "start")
     
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Открыть калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))]
-    ])
+    # Кнопка внизу экрана (именно она передает данные из Mini App)
+    kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🚀 Открыть калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))]
+        ],
+        resize_keyboard=True
+    )
     
     await message.answer(
         "👋 Привет! Это автоматический оценщик аккаунтов Mobile Legends.\n\n"
-        "Загрузи скриншоты своего профиля, и я посчитаю, за сколько его можно продать.",
+        "Нажми на кнопку **внизу экрана**, чтобы открыть калькулятор и загрузить скриншоты.",
         reply_markup=kb
     )
 
