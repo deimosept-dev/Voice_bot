@@ -12,7 +12,6 @@
             --bg-0: #07080f;
             --bg-1: #0d101d;
             --card: rgba(18, 22, 38, 0.78);
-            --card-hover: rgba(25, 31, 52, 0.92);
             --border: rgba(255, 255, 255, 0.08);
             --border-accent: rgba(56, 189, 248, 0.35);
             --text: #f8fafc;
@@ -48,7 +47,6 @@
             margin: 0 auto;
         }
 
-        /* Шапка */
         .header {
             display: flex;
             align-items: center;
@@ -116,7 +114,6 @@
             line-height: 1.4;
         }
 
-        /* Живой превью-баннер */
         .live-card {
             position: relative;
             overflow: hidden;
@@ -174,7 +171,6 @@
             color: var(--muted);
         }
 
-        /* Секции */
         .section {
             background: var(--card);
             backdrop-filter: blur(12px);
@@ -232,8 +228,15 @@
             min-width: 0;
         }
 
+        .field-sub {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 2px;
+            line-height: 1.3;
+        }
+
         .field-control {
-            flex: 0 0 148px;
+            flex: 0 0 154px;
         }
 
         select, input[type="number"] {
@@ -264,7 +267,6 @@
             box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
         }
 
-        /* Карточки скинов */
         .skin-row {
             display: flex;
             align-items: center;
@@ -353,7 +355,6 @@
             color: var(--text);
         }
 
-        /* Нижняя фиксированная кнопка */
         .dock {
             position: fixed;
             left: 0;
@@ -401,15 +402,32 @@
         </div>
 
         <h1 class="title">Оценка аккаунта MLBB</h1>
-        <p class="subtitle">Укажите параметры профиля и коллекцию — бот пришлёт подробный разбор в чат.</p>
+        <p class="subtitle">Укажите очки коллекции, параметры профиля и облики — бот пришлёт расчёт в чат.</p>
 
         <div class="live-card">
             <div class="live-top">
                 <span class="live-label">Ориентировочная оценка</span>
-                <span class="live-skins-tag" id="skinsSummary">Скинов: 0 шт.</span>
+                <span class="live-skins-tag" id="skinsSummary">Очки: 0 pts</span>
             </div>
             <div class="live-price" id="livePrice">1 500 ₽</div>
-            <div class="live-sub" id="liveBreakdown">База 1 500 ₽ • Очки коллекции: 0 pts</div>
+            <div class="live-sub" id="liveBreakdown">Коллекция: 0 ₽ • Винрейт 50%</div>
+        </div>
+
+        <div class="section">
+            <div class="section-head">
+                <span class="section-title">Очки коллекции</span>
+                <span class="section-hint">Из профиля</span>
+            </div>
+
+            <div class="field-row">
+                <div class="field-label">
+                    <label for="collection_points">Всего очков коллекции</label>
+                    <div class="field-sub">Например: 198000 (стоимость считается автоматически по очкам)</div>
+                </div>
+                <div class="field-control">
+                    <input type="number" id="collection_points" value="0" min="0" max="5000000" step="100" oninput="onParamChange()">
+                </div>
+            </div>
         </div>
 
         <div class="section">
@@ -446,38 +464,38 @@
 
         <div class="section">
             <div class="section-head">
-                <span class="section-title">Коллекция скинов</span>
-                <span class="section-hint">Нажмите + / −</span>
+                <span class="section-title">Коллекция обликов</span>
+                <span class="section-hint">Для учёта в отчёте</span>
             </div>
 
-            <div class="skin-row" id="row-supreme">
+            <div class="skin-row" id="row-legendary">
                 <div class="skin-info">
-                    <div class="skin-name">Легендарные (Supreme)</div>
-                    <div class="skin-meta"><span class="skin-pts">4 000 pts</span><span>• +410 ₽</span></div>
+                    <div class="skin-name">Легендарные</div>
+                    <div class="skin-meta"><span class="skin-pts">4 000 pts</span></div>
                 </div>
                 <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('supreme', -1)">−</button>
-                    <span class="step-val" id="supreme">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('supreme', 1)">+</button>
+                    <button type="button" class="step-btn" onclick="updateCount('legendary', -1)">−</button>
+                    <span class="step-val" id="legendary">0</span>
+                    <button type="button" class="step-btn" onclick="updateCount('legendary', 1)">+</button>
                 </div>
             </div>
 
-            <div class="skin-row" id="row-grand">
+            <div class="skin-row" id="row-exquisite_grace">
                 <div class="skin-info">
-                    <div class="skin-name">Гранд (Grand Collab)</div>
-                    <div class="skin-meta"><span class="skin-pts">3 000 pts</span><span>• +307 ₽</span></div>
+                    <div class="skin-name">Изящные</div>
+                    <div class="skin-meta"><span class="skin-pts">3 000 pts</span></div>
                 </div>
                 <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('grand', -1)">−</button>
-                    <span class="step-val" id="grand">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('grand', 1)">+</button>
+                    <button type="button" class="step-btn" onclick="updateCount('exquisite_grace', -1)">−</button>
+                    <span class="step-val" id="exquisite_grace">0</span>
+                    <button type="button" class="step-btn" onclick="updateCount('exquisite_grace', 1)">+</button>
                 </div>
             </div>
 
             <div class="skin-row" id="row-exquisite">
                 <div class="skin-info">
-                    <div class="skin-name">Изысканные (Exquisite)</div>
-                    <div class="skin-meta"><span class="skin-pts">2 000 pts</span><span>• +205 ₽</span></div>
+                    <div class="skin-name">Изысканные</div>
+                    <div class="skin-meta"><span class="skin-pts">2 000 pts</span></div>
                 </div>
                 <div class="stepper">
                     <button type="button" class="step-btn" onclick="updateCount('exquisite', -1)">−</button>
@@ -488,8 +506,8 @@
 
             <div class="skin-row" id="row-deluxe">
                 <div class="skin-info">
-                    <div class="skin-name">Роскошные (Deluxe)</div>
-                    <div class="skin-meta"><span class="skin-pts">400 pts</span><span>• +41 ₽</span></div>
+                    <div class="skin-name">Роскошные</div>
+                    <div class="skin-meta"><span class="skin-pts">400 pts</span></div>
                 </div>
                 <div class="stepper">
                     <button type="button" class="step-btn" onclick="updateCount('deluxe', -1)">−</button>
@@ -500,8 +518,8 @@
 
             <div class="skin-row" id="row-exceptional">
                 <div class="skin-info">
-                    <div class="skin-name">Исключительные (Special)</div>
-                    <div class="skin-meta"><span class="skin-pts">200 pts</span><span>• +20 ₽</span></div>
+                    <div class="skin-name">Исключительные</div>
+                    <div class="skin-meta"><span class="skin-pts">200 pts</span></div>
                 </div>
                 <div class="stepper">
                     <button type="button" class="step-btn" onclick="updateCount('exceptional', -1)">−</button>
@@ -512,13 +530,37 @@
 
             <div class="skin-row" id="row-common">
                 <div class="skin-info">
-                    <div class="skin-name">Обычные (Common)</div>
-                    <div class="skin-meta"><span class="skin-pts">100 pts</span><span>• +10 ₽</span></div>
+                    <div class="skin-name">Обычные</div>
+                    <div class="skin-meta"><span class="skin-pts">100 pts</span></div>
                 </div>
                 <div class="stepper">
                     <button type="button" class="step-btn" onclick="updateCount('common', -1)">−</button>
                     <span class="step-val" id="common">0</span>
                     <button type="button" class="step-btn" onclick="updateCount('common', 1)">+</button>
+                </div>
+            </div>
+
+            <div class="skin-row" id="row-painted">
+                <div class="skin-info">
+                    <div class="skin-name">Окраски для обликов</div>
+                    <div class="skin-meta"><span class="skin-pts">40 pts</span></div>
+                </div>
+                <div class="stepper">
+                    <button type="button" class="step-btn" onclick="updateCount('painted', -1)">−</button>
+                    <span class="step-val" id="painted">0</span>
+                    <button type="button" class="step-btn" onclick="updateCount('painted', 1)">+</button>
+                </div>
+            </div>
+
+            <div class="skin-row" id="row-grand_appearance">
+                <div class="skin-info">
+                    <div class="skin-name">Великолепный облик</div>
+                    <div class="skin-meta"><span class="skin-pts">0 pts</span><span>• Вне коллекции</span></div>
+                </div>
+                <div class="stepper">
+                    <button type="button" class="step-btn" onclick="updateCount('grand_appearance', -1)">−</button>
+                    <span class="step-val" id="grand_appearance">0</span>
+                    <button type="button" class="step-btn" onclick="updateCount('grand_appearance', 1)">+</button>
                 </div>
             </div>
         </div>
@@ -537,22 +579,19 @@
             tg.expand();
         }
 
-        const SKIN_CONFIG = {
-            supreme:     { pts: 4000, price: 410 },
-            grand:       { pts: 3000, price: 307 },
-            exquisite:   { pts: 2000, price: 205 },
-            deluxe:      { pts: 400,  price: 41  },
-            exceptional: { pts: 200,  price: 20  },
-            common:      { pts: 100,  price: 10  }
-        };
+        // Сколько рублей стоит 1 000 очков коллекции (198 000 pts * 102.44 / 1000 ≈ 20 283 ₽)
+        const PRICE_PER_1000_PTS = 102.44;
+        const BASE_PRICE = 1500;
 
         let counts = {
-            supreme: 0,
-            grand: 0,
+            legendary: 0,
+            exquisite_grace: 0,
             exquisite: 0,
             deluxe: 0,
             exceptional: 0,
-            common: 0
+            common: 0,
+            painted: 0,
+            grand_appearance: 0
         };
 
         function haptic(type = "light") {
@@ -577,7 +616,8 @@
             const rank = document.getElementById("rank").value;
             const winrate = clampNum(document.getElementById("winrate").value, 0, 100, 0);
             const matches = Math.round(clampNum(document.getElementById("matches").value, 0, 100000, 0));
-            return { rank, winrate, matches };
+            const collection_points = Math.round(clampNum(document.getElementById("collection_points").value, 0, 5000000, 0));
+            return { rank, winrate, matches, collection_points };
         }
 
         function updateCount(type, change) {
@@ -599,6 +639,7 @@
             document.getElementById("rank").value = "none";
             document.getElementById("winrate").value = "50";
             document.getElementById("matches").value = "0";
+            document.getElementById("collection_points").value = "0";
             Object.keys(counts).forEach((key) => {
                 counts[key] = 0;
                 document.getElementById(key).innerText = "0";
@@ -613,36 +654,35 @@
             return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " ₽";
         }
 
+        function formatNum(num) {
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+
         function renderLivePreview() {
-            const { rank, winrate, matches } = getCleanParams();
-            let total = 1500;
-            let totalSkins = 0;
-            let totalPts = 0;
+            const { rank, winrate, matches, collection_points } = getCleanParams();
+            let total = BASE_PRICE;
 
             if (rank === "immortal") total += 11500;
             else if (rank === "glory") total += 5750;
 
-            if (winrate >= 60 && matches >= 1000) {
+            if (winrate >= 60 && matches >= 1000 && winrate > 60) {
                 total += Math.floor((winrate - 60) * 300);
             }
 
-            Object.entries(SKIN_CONFIG).forEach(([key, cfg]) => {
-                const c = counts[key] || 0;
-                totalSkins += c;
-                totalPts += c * cfg.pts;
-                total += c * cfg.price;
-            });
+            const collectionRub = Math.round((collection_points / 1000) * PRICE_PER_1000_PTS);
+            total += collectionRub;
 
             document.getElementById("livePrice").innerText = formatRub(total);
-            document.getElementById("skinsSummary").innerText = `Скинов: ${totalSkins} шт.`;
+            document.getElementById("skinsSummary").innerText = `Очки: ${formatNum(collection_points)} pts`;
             document.getElementById("liveBreakdown").innerText =
-                `Очки коллекции: ${totalPts.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} pts • Винрейт ${winrate}%`;
+                `Коллекция: ${formatRub(collectionRub)} • Винрейт ${winrate}%`;
         }
 
         function calculate() {
-            const { rank, winrate, matches } = getCleanParams();
+            const { rank, winrate, matches, collection_points } = getCleanParams();
             document.getElementById("winrate").value = winrate;
             document.getElementById("matches").value = matches;
+            document.getElementById("collection_points").value = collection_points;
 
             const payload = {
                 action: "calculate_manual",
@@ -650,6 +690,7 @@
                     rank,
                     winrate,
                     matches,
+                    collection_points,
                     skins: { ...counts }
                 }
             };
