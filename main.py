@@ -4,6 +4,8 @@ import sqlite3
 import json
 import base64
 import httpx
+import io
+from PIL import Image
 from contextlib import closing
 from datetime import datetime
 
@@ -17,11 +19,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ZVENO_API_KEY = os.getenv("ZVENO_API_KEY")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
 WEBAPP_URL = "https://deimosept-dev.github.io/Voice_bot/"
-
-# Твой ID
 ADMIN_ID = 1636139244 
-
-# Модель для распознавания картинок
 MODEL_NAME = "nvidia/nemotron-3.5-super-vl:free"
 
 def db():
@@ -69,27 +67,31 @@ async def handle_webapp(message: Message):
     try:
         data = json.loads(message.web_app_data.data)
         if data.get("action") == "calculate":
-            await message.answer("✅ Отлично! Теперь отправь скриншоты прямо сюда в чат (можно альбомом).")
+            await message.answer("✅ Отлично! Теперь отправь скриншоты прямо сюда в чат.")
     except Exception as e:
         print("WebApp error:", e)
 
-# --- ОБРАБОТКА ФОТО И ОЦЕНКА ---
 @dp.message(F.photo)
 async def handle_photo(message: Message):
     log_action(message.from_user.id, "photo_uploaded")
-    status_msg = await message.answer("🔍 Распознаю данные с экрана... Это займет около 15 секунд.")
+    status_msg = await message.answer("🔍 Обрабатываю фото и распознаю данные...")
 
     try:
         # Скачиваем фото
         file_info = await message.bot.get_file(message.photo[-1].file_id)
         downloaded_file = await message.bot.download_file(file_info.file_path)
-        image_b64 = base64.b64encode(downloaded_file.read()).decode('utf-8')
 
-        # Запрос к нейросети (Vision)
+        # СЖАТИЕ ФОТО (чтобы не превышать лимиты API)
+        image = Image.open(io.BytesIO(downloaded_file.read()))
+        image.thumbnail((1024, 1024)) # Уменьшаем до 1024px
+        output = io.BytesIO()
+        image.convert("RGB").save(output, format="JPEG", quality=80)
+        image_b64 = base64.b64encode(output.getvalue()).decode('utf-8')
+
         prompt = (
             "Ты — профессиональный оценщик аккаунтов Mobile Legends. "
-            "Посмотри на скриншот и вытащи данные: Максимальный ранг (например, Mythical Glory), "
-            "Количество матчей, Процент побед (винрейт), Количество скинов (если видно). "
+            "Посмотри на скриншот и вытащи данные: Максимальный ранг, "
+            "Количество матчей, Процент побед (винрейт), Количество скинов. "
             "Затем рассчитай примерную стоимость аккаунта в рублях по формуле: "
             "Mythical Glory = +5750 руб, Immortal = +11500 руб. Каждый Supreme скин = +400 руб. "
             "Выдай ответ красиво: что ты нашел на скрине, и итоговую цену."
@@ -109,15 +111,20 @@ async def handle_photo(message: Message):
 
         async with httpx.AsyncClient(timeout=90.0) as client:
             response = await client.post("https://api.zveno.ai/v1/chat/completions", headers=headers, json=payload)
-            response.raise_for_status()
+            
+            # Если ошибка — показываем ее
+            if response.status_code != 200:
+                raise Exception(f"API Error {response.status_code}: {response.text}")
+
             answer = response.json()["choices"][0]["message"]["content"]
 
         await message.answer(answer)
         await status_msg.delete()
 
     except Exception as e:
+        error_text = str(e)
+        await status_msg.edit_text(f"❌ Ошибка:\n{error_text[:300]}") # Показываем первые 300 символов ошибки
         print("AI error:", repr(e))
-        await status_msg.edit_text("❌ Не удалось распознать фото. Попробуй сделать скриншот более четким.")
 
 @dp.message(Command("admin"))
 async def cmd_admin(message: Message):
