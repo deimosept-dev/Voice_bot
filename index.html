@@ -14,14 +14,14 @@
             --surface: rgba(20, 19, 27, 0.86);
             --surface-soft: rgba(255, 255, 255, 0.035);
             --line: rgba(255, 255, 255, 0.075);
-            --line-crimson: rgba(190, 24, 93, 0.34);
+            --line-crimson: rgba(190, 24, 93, 0.36);
             --ink: #f4f4f6;
             --muted: #9898a8;
             --crimson: #be185d;
             --crimson-bright: #e11d48;
             --ice: #7dd3fc;
             --amber: #fbbf24;
-            --ok: #34d399;
+            --mint: #6ee7b7;
         }
 
         * {
@@ -120,7 +120,7 @@
         .score-panel {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(145deg, rgba(30, 18, 27, 0.92), rgba(16, 16, 24, 0.95));
+            background: linear-gradient(145deg, rgba(30, 18, 27, 0.93), rgba(16, 16, 24, 0.96));
             border: 1px solid var(--line-crimson);
             border-radius: 20px;
             padding: 15px 16px;
@@ -160,16 +160,43 @@
             color: var(--amber);
         }
 
+        .score-main-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 6px;
+        }
+
         .score-value {
-            margin-top: 5px;
             font-size: 30px;
             font-weight: 900;
             letter-spacing: -0.03em;
             color: var(--ink);
+            line-height: 1.1;
+        }
+
+        .quick-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: #d1fae5;
+            background: rgba(16, 185, 129, 0.11);
+            border: 1px solid rgba(110, 231, 183, 0.22);
+        }
+
+        .quick-chip strong {
+            color: var(--mint);
+            font-weight: 800;
         }
 
         .score-meta {
-            margin-top: 5px;
+            margin-top: 8px;
             font-size: 12px;
             color: var(--muted);
         }
@@ -414,11 +441,14 @@
 
         <div class="score-panel">
             <div class="score-top">
-                <span class="score-caption">Предварительная оценка</span>
+                <span class="score-caption">Рыночная оценка</span>
                 <span class="score-badge" id="ptsBadge">0 pts</span>
             </div>
-            <div class="score-value" id="previewTotal">0 ₽</div>
-            <div class="score-meta" id="previewMeta">Коллекция: 0 ₽ • Ранг: Без ранга</div>
+            <div class="score-main-row">
+                <div class="score-value" id="previewTotal">0 ₽</div>
+                <div class="quick-chip">Быстро: <strong id="previewQuick">0 ₽</strong></div>
+            </div>
+            <div class="score-meta" id="previewMeta">Коллекция: 0 ₽ • Винрейт: 0 ₽</div>
         </div>
 
         <div class="box">
@@ -433,7 +463,7 @@
                     <span class="field-desc">Общее число очков из профиля (например, 198000)</span>
                 </div>
                 <div class="field-input-wrap">
-                    <input type="number" id="collection_points" value="0" min="0" max="5000000" step="100" oninput="refreshPreview()">
+                    <input type="number" id="collection_points" value="0" min="0" max="5000000" step="100" oninput="refreshPreview()" onchange="refreshPreview()" onblur="refreshPreview()">
                 </div>
             </div>
 
@@ -461,17 +491,17 @@
                     <span class="field-desc">Бонус начисляется от 60%</span>
                 </div>
                 <div class="field-input-wrap">
-                    <input type="number" id="winrate" value="50" min="0" max="100" step="0.1" oninput="refreshPreview()">
+                    <input type="number" id="winrate" value="50" min="0" max="100" step="0.1" oninput="refreshPreview()" onchange="refreshPreview()" onblur="refreshPreview()">
                 </div>
             </div>
 
             <div class="row-field">
                 <div class="field-text">
                     <label class="field-title" for="matches">Ранговые матчи</label>
-                    <span class="field-desc">Влияет на вес бонуса за винрейт</span>
+                    <span class="field-desc">Учитываются вместе с высоким винрейтом</span>
                 </div>
                 <div class="field-input-wrap">
-                    <input type="number" id="matches" value="0" min="0" max="100000" step="1" oninput="refreshPreview()">
+                    <input type="number" id="matches" value="0" min="0" max="100000" step="1" oninput="refreshPreview()" onchange="refreshPreview()" onblur="refreshPreview()">
                 </div>
             </div>
         </div>
@@ -594,8 +624,13 @@
         }
 
         const PRICE_PER_1000_PTS = 102.44;
+        const WINRATE_START = 60;
+        const WINRATE_RUB_PER_PCT = 163.8;
+        const WINRATE_MAX_MATCHES = 3000;
+        const QUICK_SALE_FACTOR = 0.85;
+
         const RANK_VALUES = {
-            none:      { label: "Без ранга", price: 0 },
+            none:      { label: "Ниже Epic", price: 0 },
             epic:      { label: "Epic", price: 51 },
             legend:    { label: "Legend", price: 256 },
             mythic:    { label: "Mythic", price: 768 },
@@ -625,7 +660,8 @@
         }
 
         function clampNum(raw, min, max, fallback = 0) {
-            const num = parseFloat(raw);
+            if (raw === "" || raw === null || raw === undefined) return fallback;
+            const num = parseFloat(String(raw).replace(",", "."));
             if (Number.isNaN(num)) return fallback;
             return Math.min(max, Math.max(min, num));
         }
@@ -647,10 +683,10 @@
         }
 
         function calcWinrateBonus(winrate, matches) {
-            if (winrate <= 60 || matches <= 0) return 0;
-            const matchFactor = Math.min(matches / 3000, 1.0);
-            const extraWr = Math.min(winrate - 60, 20);
-            return Math.round(extraWr * 163.8 * matchFactor);
+            if (winrate <= WINRATE_START || matches <= 0) return 0;
+            const matchFactor = Math.min(matches / WINRATE_MAX_MATCHES, 1.0);
+            const extraWr = Math.min(winrate - WINRATE_START, 20);
+            return Math.round(extraWr * WINRATE_RUB_PER_PCT * matchFactor);
         }
 
         function changeQty(key, delta) {
@@ -683,13 +719,15 @@
             const collectionRub = Math.round((collection_points / 1000) * PRICE_PER_1000_PTS);
             const wrBonus = calcWinrateBonus(winrate, matches);
             const total = collectionRub + rankInfo.price + wrBonus;
+            const quickSale = Math.round(total * QUICK_SALE_FACTOR);
 
             const totalSkins = Object.values(skins).reduce((acc, v) => acc + (v || 0), 0);
 
             document.getElementById("previewTotal").innerText = formatRub(total);
+            document.getElementById("previewQuick").innerText = formatRub(quickSale);
             document.getElementById("ptsBadge").innerText = `${formatInt(collection_points)} pts`;
             document.getElementById("previewMeta").innerText =
-                `Коллекция: ${formatRub(collectionRub)} • Ранг: ${rankInfo.label}`;
+                `Коллекция: ${formatRub(collectionRub)} • Винрейт: ${formatRub(wrBonus)}`;
             document.getElementById("skinsCountTag").innerText = `${totalSkins} шт.`;
         }
 
