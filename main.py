@@ -2,10 +2,6 @@ import asyncio
 import os
 import sqlite3
 import json
-import io
-import re
-import pytesseract
-from PIL import Image
 from contextlib import closing
 from datetime import datetime
 
@@ -56,95 +52,75 @@ async def cmd_start(message: Message):
     )
     await message.answer(
         "👋 Привет! Нажми на кнопку внизу, чтобы открыть калькулятор.\n\n"
-        "После того как выберешь фото, **пришли их сюда в чат**, и я оценю аккаунт.",
+        "Введи свои данные, и я рассчитаю точную стоимость аккаунта.",
         reply_markup=kb
     )
 
 @dp.message(F.web_app_data)
 async def handle_webapp(message: Message):
     try:
-        data = json.loads(message.web_app_data.data)
-        if data.get("action") == "calculate":
-            await message.answer("✅ Отлично! Теперь отправь скриншоты прямо сюда в чат.")
+        payload = json.loads(message.web_app_data.data)
+        if payload.get("action") == "calculate_manual":
+            d = payload["data"]
+            
+            # --- МАТЕМАТИКА ---
+            base = 1500 # База
+            bonuses = 0
+            details = []
+
+            # 1. Ранг
+            if d["rank"] == "immortal":
+                bonuses += 11500
+                details.append("• Ранг: <b>Immortal</b> (+11 500 ₽)")
+            elif d["rank"] == "glory":
+                bonuses += 5750
+                details.append("• Ранг: <b>Mythical Glory</b> (+5 750 ₽)")
+
+            # 2. Винрейт (если больше 60% и матчей больше 1000)
+            if d["winrate"] >= 60 and d["matches"] >= 1000:
+                wr_bonus = int((d["winrate"] - 60) * 300) # Примерно 300 руб за 1%
+                bonuses += wr_bonus
+                details.append(f"• Винрейт: {d['winrate']}% (+{wr_bonus} ₽)")
+
+            # 3. Скины
+            skins = d["skins"]
+            skin_prices = {
+                "supreme": (410, "Легендарные"),
+                "grand": (307, "Гранд"),
+                "exquisite": (205, "Изысканные"),
+                "deluxe": (41, "Роскошные"),
+                "exceptional": (20, "Исключительные"),
+                "common": (10, "Обычные")
+            }
+
+            for key, (price, name) in skin_prices.items():
+                count = skins.get(key, 0)
+                if count > 0:
+                    total = count * price
+                    bonuses += total
+                    details.append(f"• {name}: {count} шт. (+{total} ₽)")
+
+            total_price = base + bonuses
+            
+            # Если совсем ничего нет
+            if not details:
+                details.append("• Базовый аккаунт без выдающихся заслуг.")
+
+            details_text = "\n".join(details)
+            
+            answer = (
+                f"<b>📊 Оценка аккаунта готова!</b>\n\n"
+                f"{details_text}\n\n"
+                f"<b>💰 Итоговая стоимость: {total_price} рублей</b>\n\n"
+                f"<i>Совет: Чтобы продать быстрее, выставьте цену на 10-15% ниже оценки.</i>"
+            )
+            
+            await message.answer(answer, parse_mode="HTML")
+            log_action(message.from_user.id, "calculated_manual")
+
     except Exception as e:
         print("WebApp error:", e)
-
-@dp.message(F.photo)
-async def handle_photo(message: Message):
-    log_action(message.from_user.id, "photo_uploaded")
-    status_msg = await message.answer("📊 Анализирую данные аккаунта...")
-
-    try:
-        # 1. Скачиваем фото
-        file_info = await message.bot.get_file(message.photo[-1].file_id)
-        downloaded_file = await message.bot.download_file(file_info.file_path)
-
-        # 2. Читаем текст локально
-        image = Image.open(io.BytesIO(downloaded_file.read()))
-        text = pytesseract.image_to_string(image, lang='rus+eng')
-        text_lower = text.lower()
-
-        if len(text.strip()) < 5:
-            raise Exception("Не удалось разглядеть текст.")
-
-        # 3. Локальный подсчет (без ИИ)
-        base_price = 1500 # Базовая цена за любой аккаунт
-        details = []
-        bonuses = 0
-
-        # Ищем ранг
-        if "immortal" in text_lower or "бессмерт" in text_lower:
-            bonuses += 11500
-            details.append("• Максимальный ранг: <b>Immortal (Бессмертный)</b> (+11 500 руб.)")
-        elif "glory" in text_lower or "слав" in text_lower:
-            bonuses += 5750
-            details.append("• Максимальный ранг: <b>Mythical Glory</b> (+5 750 руб.)")
-        else:
-            details.append("• Максимальный ранг: не определен или ниже Mythic")
-
-        # Ищем винрейт (ищем проценты)
-        winrate_match = re.search(r'(\d{2}\.?\d{0,2})\s*%', text_lower)
-        if winrate_match:
-            wr = float(winrate_match.group(1))
-            details.append(f"• Винрейт: <b>{wr}%</b>")
-            if wr >= 60:
-                bonuses += 1500
-                details.append("  <i>(Бонус за высокий винрейт: +1 500 руб.)</i>")
-        
-        # Ищем количество матчей (ищем 4-5 значные числа рядом со словом "матчи")
-        matches_match = re.search(r'(\d{3,5})\s*(матчи|matches)', text_lower)
-        if matches_match:
-            matches = int(matches_match.group(1))
-            details.append(f"• Количество матчей: <b>{matches}</b>")
-            if matches > 5000:
-                bonuses += 500
-
-        # Ищем скины (если есть слово "скин" или "skin" и цифры)
-        skins_match = re.search(r'(\d{2,3})\s*(скин|skin|образ)', text_lower)
-        if skins_match:
-            skins = int(skins_match.group(1))
-            details.append(f"• Найдено скинов: <b>{skins}</b>")
-            bonuses += skins * 50 # По 50 руб за скин (примерно)
-        else:
-            details.append("• Данные по скинам не предоставлены")
-
-        total_price = base_price + bonuses
-
-        # 4. Собираем красивый ответ
-        details_text = "\n".join(details)
-        final_answer = (
-            f"<b>Анализ аккаунта завершен</b>\n\n"
-            f"{details_text}\n\n"
-            f"<b>Примерная стоимость: {total_price} рублей</b>\n\n"
-            f"<i>Совет: Чтобы продать аккаунт быстрее, обязательно сделайте скриншоты редких скинов (Supreme или Collector) — они повышают цену.</i>"
-        )
-
-        await message.answer(final_answer, parse_mode="HTML")
-        await status_msg.delete()
-
-    except Exception as e:
-        await status_msg.edit_text(f"❌ Ошибка:\n{str(e)[:200]}")
-        print("Error:", repr(e))
+        await message.answer("❌ Ошибка при расчете. Попробуй еще раз.")
 
 @dp.message(Command("admin"))
 async def cmd_admin(message: Message):
@@ -152,13 +128,11 @@ async def cmd_admin(message: Message):
         return
     with closing(db()) as conn:
         total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        total_starts = conn.execute("SELECT COUNT(*) FROM stats WHERE action='start'").fetchone()[0]
-        total_photos = conn.execute("SELECT COUNT(*) FROM stats WHERE action='photo_uploaded'").fetchone()[0]
+        total_calcs = conn.execute("SELECT COUNT(*) FROM stats WHERE action='calculated_manual'").fetchone()[0]
     await message.answer(
         f"📊 <b>Статистика:</b>\n\n"
         f"👥 Пользователей: {total_users}\n"
-        f"🚀 Запустили бота: {total_starts}\n"
-        f"📸 Загрузили фото на оценку: {total_photos}",
+        f"💰 Сделали расчет: {total_calcs}",
         parse_mode="HTML"
     )
 
@@ -167,7 +141,7 @@ async def main():
         return
     init_db()
     bot = Bot(BOT_TOKEN)
-    print("🚀 Бот запущен (без ИИ, локальный подсчет)!")
+    print("🚀 Бот-калькулятор запущен!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
