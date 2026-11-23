@@ -2,8 +2,8 @@ import asyncio
 import os
 import sqlite3
 import json
-import httpx
 import io
+import re
 import pytesseract
 from PIL import Image
 from contextlib import closing
@@ -15,17 +15,11 @@ from aiogram.types import (
     Message, WebAppInfo, ReplyKeyboardMarkup, KeyboardButton
 )
 
-# --- НАСТРОЙКИ ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ZVENO_API_KEY = os.getenv("ZVENO_API_KEY")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
 WEBAPP_URL = "https://deimosept-dev.github.io/Voice_bot/"
 ADMIN_ID = 1636139244 
 
-# Текстовая модель (для анализа данных)
-MODEL_NAME = "nvidia/nemotron-3-ultra-550b-a55b:free"
-
-# --- БАЗА ДАННЫХ И СТАТИСТИКА ---
 def db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -53,7 +47,6 @@ def log_action(user_id, action):
 
 dp = Dispatcher()
 
-# --- ХЕНДЛЕРЫ БОТА ---
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
     log_action(message.from_user.id, "start")
@@ -63,7 +56,7 @@ async def cmd_start(message: Message):
     )
     await message.answer(
         "👋 Привет! Нажми на кнопку внизу, чтобы открыть калькулятор.\n\n"
-        "После того как выберешь фото в приложении, **пришли их сюда в чат**, и я оценю аккаунт.",
+        "После того как выберешь фото, **пришли их сюда в чат**, и я оценю аккаунт.",
         reply_markup=kb
     )
 
@@ -82,54 +75,75 @@ async def handle_photo(message: Message):
     status_msg = await message.answer("📊 Анализирую данные аккаунта...")
 
     try:
-        # Скачиваем фото
+        # 1. Скачиваем фото
         file_info = await message.bot.get_file(message.photo[-1].file_id)
         downloaded_file = await message.bot.download_file(file_info.file_path)
 
-        # Читаем текст с картинки локально (OCR)
+        # 2. Читаем текст локально
         image = Image.open(io.BytesIO(downloaded_file.read()))
-        extracted_text = pytesseract.image_to_string(image, lang='rus+eng')
+        text = pytesseract.image_to_string(image, lang='rus+eng')
+        text_lower = text.lower()
 
-        if len(extracted_text.strip()) < 10:
-            raise Exception("Не удалось разглядеть текст. Сделай скриншот почётче.")
+        if len(text.strip()) < 5:
+            raise Exception("Не удалось разглядеть текст.")
 
-        await status_msg.edit_text("💰 Формирую оценку стоимости...")
+        # 3. Локальный подсчет (без ИИ)
+        base_price = 1500 # Базовая цена за любой аккаунт
+        details = []
+        bonuses = 0
 
-        # Промпт для профессионального ответа
-        prompt = (
-            f"Ты — профессиональный оценщик аккаунтов Mobile Legends с большим опытом. "
-            f"Твоя задача — сделать быструю и четкую оценку на основе распознанного текста со скринов.\n\n"
-            f"Текст со скринов:\n{extracted_text}\n\n"
-            f"ПРАВИЛА ОТВЕТА:\n"
-            f"1. Пиши как опытный человек, а не как робот. Используй деловой, но живой стиль. Без лишних вступлений.\n"
-            f"2. Используй HTML-теги для оформления: <b>жирный</b> для заголовков и цифр. НЕ ИСПОЛЬЗУЙ символы *, **, # или слэши.\n"
-            f"3. Кратко перечисли найденные параметры (ранг, винрейт, кол-во матчей, скины, если есть).\n"
-            f"4. Если каких-то данных нет (например, не загружен скрин со скинами), просто напиши 'Данные по скинам не предоставлены'.\n"
-            f"5. В конце четко выдели итоговую стоимость: <b>Примерная стоимость: XXXX рублей</b>.\n"
-            f"6. Добавь один короткий совет по продаже аккаунта."
-        )
+        # Ищем ранг
+        if "immortal" in text_lower or "бессмерт" in text_lower:
+            bonuses += 11500
+            details.append("• Максимальный ранг: <b>Immortal (Бессмертный)</b> (+11 500 руб.)")
+        elif "glory" in text_lower or "слав" in text_lower:
+            bonuses += 5750
+            details.append("• Максимальный ранг: <b>Mythical Glory</b> (+5 750 руб.)")
+        else:
+            details.append("• Максимальный ранг: не определен или ниже Mythic")
+
+        # Ищем винрейт (ищем проценты)
+        winrate_match = re.search(r'(\d{2}\.?\d{0,2})\s*%', text_lower)
+        if winrate_match:
+            wr = float(winrate_match.group(1))
+            details.append(f"• Винрейт: <b>{wr}%</b>")
+            if wr >= 60:
+                bonuses += 1500
+                details.append("  <i>(Бонус за высокий винрейт: +1 500 руб.)</i>")
         
-        headers = {"Authorization": f"Bearer {ZVENO_API_KEY}", "Content-Type": "application/json"}
-        payload = {
-            "model": MODEL_NAME,
-            "messages": [{"role": "user", "content": prompt}]
-        }
+        # Ищем количество матчей (ищем 4-5 значные числа рядом со словом "матчи")
+        matches_match = re.search(r'(\d{3,5})\s*(матчи|matches)', text_lower)
+        if matches_match:
+            matches = int(matches_match.group(1))
+            details.append(f"• Количество матчей: <b>{matches}</b>")
+            if matches > 5000:
+                bonuses += 500
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post("https://api.zveno.ai/v1/chat/completions", headers=headers, json=payload)
-            
-            if response.status_code != 200:
-                raise Exception(f"API Error {response.status_code}: {response.text}")
+        # Ищем скины (если есть слово "скин" или "skin" и цифры)
+        skins_match = re.search(r'(\d{2,3})\s*(скин|skin|образ)', text_lower)
+        if skins_match:
+            skins = int(skins_match.group(1))
+            details.append(f"• Найдено скинов: <b>{skins}</b>")
+            bonuses += skins * 50 # По 50 руб за скин (примерно)
+        else:
+            details.append("• Данные по скинам не предоставлены")
 
-            answer = response.json()["choices"][0]["message"]["content"]
+        total_price = base_price + bonuses
 
-        # Отправляем с HTML-форматированием
-        await message.answer(answer, parse_mode="HTML")
+        # 4. Собираем красивый ответ
+        details_text = "\n".join(details)
+        final_answer = (
+            f"<b>Анализ аккаунта завершен</b>\n\n"
+            f"{details_text}\n\n"
+            f"<b>Примерная стоимость: {total_price} рублей</b>\n\n"
+            f"<i>Совет: Чтобы продать аккаунт быстрее, обязательно сделайте скриншоты редких скинов (Supreme или Collector) — они повышают цену.</i>"
+        )
+
+        await message.answer(final_answer, parse_mode="HTML")
         await status_msg.delete()
 
     except Exception as e:
-        error_text = str(e)
-        await status_msg.edit_text(f"❌ Ошибка:\n{error_text[:300]}")
+        await status_msg.edit_text(f"❌ Ошибка:\n{str(e)[:200]}")
         print("Error:", repr(e))
 
 @dp.message(Command("admin"))
@@ -149,11 +163,11 @@ async def cmd_admin(message: Message):
     )
 
 async def main():
-    if not BOT_TOKEN or not ZVENO_API_KEY:
+    if not BOT_TOKEN:
         return
     init_db()
     bot = Bot(BOT_TOKEN)
-    print("🚀 Бот запущен!")
+    print("🚀 Бот запущен (без ИИ, локальный подсчет)!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
