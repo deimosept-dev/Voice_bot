@@ -2,6 +2,7 @@ import asyncio
 import os
 import sqlite3
 import httpx
+import base64
 from contextlib import closing
 from datetime import date
 
@@ -13,7 +14,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ZVENO_API_KEY = os.getenv("ZVENO_API_KEY")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
 
-MODEL_NAME = "nvidia/nemotron-3-ultra-550b-a55b:free"
+# Модель, которая умеет распознавать картинки (VL - Vision Language)
+MODEL_NAME = "nvidia/nemotron-3.5-super-vl:free"
 
 def db():
     conn = sqlite3.connect(DB_PATH)
@@ -42,8 +44,7 @@ def can_solve(user_id):
             conn.execute("UPDATE users SET requests_today=0, last_request_date=? WHERE user_id=?", (today, user_id))
             conn.commit()
             return True
-            
-        return row["requests_today"] < 5 # Изменили на 5 задач в день
+        return row["requests_today"] < 5
 
 def add_request(user_id):
     with closing(db()) as conn:
@@ -65,16 +66,12 @@ async def cmd_start(message: Message):
     remaining = get_remaining(message.from_user.id)
     await message.answer(
         "👋 Привет! Я твой умный помощник по домашке.\n\n"
-        "📝 Отправь мне текст задачи (математика, физика, химия, сочинения), и я решу её по шагам!\n\n"
+        "📝 Отправь мне текст задачи или **фотографию** задания, и я решу её по шагам!\n\n"
         f"🎁 У тебя осталось {remaining} из 5 бесплатных решений на сегодня."
     )
 
-@dp.message(F.text)
-async def handle_homework(message: Message):
-    text = message.text.strip()
-    if text.startswith("/"):
-        return
-
+# Функция для отправки запроса к нейросети
+async def ask_ai(message: Message, text_prompt: str, image_b64: str = None):
     if not can_solve(message.from_user.id):
         await message.answer("😔 На сегодня лимит (5 решений) исчерпан. Возвращайся завтра!")
         return
@@ -86,11 +83,21 @@ async def handle_homework(message: Message):
         "Content-Type": "application/json"
     }
     
+    # Формируем сообщение для нейросети
+    user_content = []
+    if text_prompt:
+        user_content.append({"type": "text", "text": text_prompt})
+    if image_b64:
+        user_content.append({
+            "type": "image_url", 
+            "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}
+        })
+
     payload = {
         "model": MODEL_NAME,
         "messages": [
-            {"role": "system", "content": "Ты — школьный помощник. Решай задачи по шагам, объясняя простым языком, чтобы школьник понял."},
-            {"role": "user", "content": text}
+            {"role": "system", "content": "Ты — школьный помощник. Решай задачи по шагам, объясняя простым языком. Если на фото несколько задач, реши первую."},
+            {"role": "user", "content": user_content}
         ]
     }
 
@@ -102,10 +109,8 @@ async def handle_homework(message: Message):
                 json=payload
             )
         
-        # Если API вернул ошибку, мы покажем её прямо в телеграме
         if response.status_code != 200:
-            error_details = response.text
-            raise Exception(f"Код {response.status_code}: {error_details}")
+            raise Exception(f"Код {response.status_code}: {response.text}")
 
         result = response.json()
         answer = result["choices"][0]["message"]["content"]
@@ -122,18 +127,40 @@ async def handle_homework(message: Message):
         await status_msg.delete()
 
     except Exception as e:
-        # Выводим ошибку прямо в чат, чтобы мы сразу поняли причину
         error_text = str(e)
         await status_msg.edit_text(f"❌ Ошибка API:\n{error_text[:400]}")
         print("AI error:", repr(e))
 
+
+# Обработка текстовых задач
+@dp.message(F.text)
+async def handle_text(message: Message):
+    text = message.text.strip()
+    if text.startswith("/"):
+        return
+    await ask_ai(message, text_prompt=text)
+
+# Обработка фотографий с задачами
+@dp.message(F.photo)
+async def handle_photo(message: Message):
+    await message.answer("📸 Фото получено! Распознаю текст и решаю...")
+    
+    # Скачиваем фото в максимальном качестве
+    file_info = await message.bot.get_file(message.photo[-1].file_id)
+    downloaded_file = await message.bot.download_file(file_info.file_path)
+    
+    # Переводим картинку в формат base64
+    image_b64 = base64.b64encode(downloaded_file.read()).decode('utf-8')
+    
+    # Отправляем в нейросеть
+    await ask_ai(message, text_prompt="Реши задачу на этом фото.", image_b64=image_b64)
+
 async def main():
     if not BOT_TOKEN or not ZVENO_API_KEY:
-        print("❌ ОШИБКА: Не заданы BOT_TOKEN или ZVENO_API_KEY!")
         return
     init_db()
     bot = Bot(BOT_TOKEN)
-    print("🚀 Бот-помощник (ZvenoAI) запущен!")
+    print("🚀 Бот-помощник (с распознаванием фото) запущен!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
