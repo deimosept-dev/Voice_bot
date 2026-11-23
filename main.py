@@ -12,8 +12,8 @@ from aiogram.types import (
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ZVENO_API_KEY = os.getenv("ZVENO_API_KEY")
 
-# Модель ZvenoAI
-MODEL_NAME = "nvidia/nemotron-3.5-super-vl:free"
+# Самая мощная текстовая модель ZvenoAI
+MODEL_NAME = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
 def get_main_kb():
     return InlineKeyboardMarkup(inline_keyboard=[
