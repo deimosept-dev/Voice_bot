@@ -16,6 +16,10 @@ ADMIN_ID = int(os.getenv("ADMIN_ID", "1636139244"))
 
 BASE_PRICE = 0
 PRICE_PER_1000_PTS = 102.44
+WINRATE_START = 60.0
+WINRATE_RUB_PER_PCT = 163.8
+WINRATE_MAX_MATCHES = 3000.0
+QUICK_SALE_FACTOR = 0.85
 
 RANKS = {
     "none": ("Ниже Epic", 0),
@@ -75,11 +79,15 @@ def _num(val, default=0.0):
 
 
 def _winrate_bonus(winrate: float, matches: int) -> int:
-    if winrate <= 60 or matches <= 0:
+    if winrate <= WINRATE_START or matches <= 0:
         return 0
-    match_factor = min(matches / 3000.0, 1.0)
-    extra_wr = min(winrate - 60.0, 20.0)
-    return round(extra_wr * 163.8 * match_factor)
+    match_factor = min(matches / WINRATE_MAX_MATCHES, 1.0)
+    extra_wr = min(winrate - WINRATE_START, 20.0)
+    return round(extra_wr * WINRATE_RUB_PER_PCT * match_factor)
+
+
+def _fmt_rub(amount: int) -> str:
+    return f"{amount:,}".replace(",", " ") + " ₽"
 
 
 dp = Dispatcher()
@@ -120,17 +128,17 @@ async def handle_webapp(message: Message):
         if collection_points > 0:
             col_rub = round((collection_points / 1000.0) * PRICE_PER_1000_PTS)
             bonuses += col_rub
-            details.append(f"• Очки коллекции ({collection_points:,} pts): <b>+{col_rub:,} ₽</b>".replace(",", " "))
+            details.append(f"• Очки коллекции ({collection_points:,} pts): <b>+{_fmt_rub(col_rub)}</b>".replace(",", " "))
 
         rank_name, rank_price = RANKS.get(rank_key, RANKS["none"])
         if rank_price > 0:
             bonuses += rank_price
-            details.append(f"• Ранг ({rank_name}): <b>+{rank_price:,} ₽</b>".replace(",", " "))
+            details.append(f"• Ранг ({rank_name}): <b>+{_fmt_rub(rank_price)}</b>")
 
         wr_bonus = _winrate_bonus(winrate, matches)
         if wr_bonus > 0:
             bonuses += wr_bonus
-            details.append(f"• Винрейт ({winrate:g}%, {matches:,} матчей): <b>+{wr_bonus:,} ₽</b>".replace(",", " "))
+            details.append(f"• Винрейт ({winrate:g}%, {matches:,} матчей): <b>+{_fmt_rub(wr_bonus)}</b>".replace(",", " "))
 
         skins = d.get("skins") if isinstance(d.get("skins"), dict) else {}
         chosen = []
@@ -142,18 +150,19 @@ async def handle_webapp(message: Message):
             details.append("• Облики: " + ", ".join(chosen))
 
         total_price = BASE_PRICE + bonuses
+        quick_price = round(total_price * QUICK_SALE_FACTOR)
 
         if not details:
             details.append("• Пустой аккаунт без очков коллекции и бонусов.")
 
         details_text = "\n".join(details)
-        total_formatted = f"{total_price:,}".replace(",", " ")
+        quick_line = f"\n⚡ Быстрая продажа (-15%): <b>{_fmt_rub(quick_price)}</b>" if total_price > 0 else ""
 
         answer = (
             f"<b>📊 Оценка аккаунта MLBB</b>\n\n"
             f"{details_text}\n\n"
-            f"<b>💰 Итоговая оценка: {total_formatted} ₽</b>\n\n"
-            f"<i>Совет: Для быстрой продажи ориентируйтесь на цену на 10–15% ниже оценки.</i>"
+            f"<b>💰 Рыночная оценка: {_fmt_rub(total_price)}</b>"
+            f"{quick_line}"
         )
 
         await message.answer(answer, parse_mode="HTML")
