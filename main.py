@@ -12,12 +12,15 @@ from aiogram.types import (
 )
 from edge_tts import Communicate
 
-# Настройки
+# --- ФИКС ОШИБКИ 403 (новый сервер Microsoft) ---
+import edge_tts.constants
+edge_tts.constants.WSS_URL = "wss://api.msedgeservices.com/tts/cognitiveservices/websocket/v1?Ocp-Apim-Subscription-Key=trusted-client-token"
+# ------------------------------------------------
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
 MAX_CHARS = int(os.getenv("MAX_CHARS", "1500"))
 
-# Библиотека голосов (Виктория, Игорь и др.)
 VOICES = {
     "victoria": ("Виктория (RU, жен)", "ru-RU-DariyaNeural"),
     "igor": ("Игорь (RU, муж)", "ru-RU-LevNeural"),
@@ -106,33 +109,27 @@ async def handle_text(message: Message):
     if voice_key not in VOICES:
         voice_key = "victoria"
 
-    # Отправляем сообщение о процессе
     status_msg = await message.answer("⏳ Генерирую аудио...")
 
-    # Создаем временный файл для аудио
     tmp = tempfile.NamedTemporaryFile(suffix=".mp3", delete=False)
     tmp_path = tmp.name
     tmp.close()
 
     try:
-        # Генерация озвучки
-        communicate = Communicate(text, VOICES[voice_key][1])
-        await communicate.save(tmp_path)
+        async with Communicate(text, VOICES[voice_key][1]) as communicate:
+            await communicate.save(tmp_path)
         
-        # Отправка аудио
         await message.answer_audio(
             FSInputFile(tmp_path),
             caption=f"🎙 Голос: {VOICES[voice_key][0]}"
         )
         
-        # Удаляем сообщение "Генерирую..."
         await status_msg.delete()
         
     except Exception as e:
         print("TTS error:", repr(e))
         await status_msg.edit_text("❌ Ошибка при генерации. Попробуй еще раз или отправь текст покороче.")
     finally:
-        # Удаляем временный файл, чтобы не забивать память
         try:
             os.unlink(tmp_path)
         except OSError:
