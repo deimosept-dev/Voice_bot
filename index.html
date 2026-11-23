@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MLBB Account Valuer</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --bg: #0f0f13; --card: rgba(30, 30, 40, 0.7); --neon: #00f0ff; --text: #ffffff; }
+        body { background-color: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; padding: 20px; min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 24px; background: linear-gradient(90deg, var(--neon), #8a2be2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; }
+        .upload-area { background: var(--card); border: 2px dashed rgba(0, 240, 255, 0.3); border-radius: 16px; padding: 40px 20px; text-align: center; cursor: pointer; }
+        .btn { background: linear-gradient(90deg, #8a2be2, var(--neon)); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-size: 16px; font-weight: bold; width: 100%; margin-top: 20px; cursor: pointer; display: none; }
+        .file-item { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 8px; font-size: 12px; }
+        #loading { display: none; text-align: center; margin-top: 50px; }
+    </style>
+</head>
+<body>
+    <div class="header"><h1>MLBB Оценщик</h1><p>Загрузи скриншоты</p></div>
+    <div id="main">
+        <div class="upload-area" id="drop" onclick="document.getElementById('file').click()">
+            <div style="font-size: 40px;">📸</div>
+            <div>Нажми, чтобы выбрать фото</div>
+            <input type="file" id="file" multiple accept="image/*" style="display: none;">
+        </div>
+        <div id="list"></div>
+        <button class="btn" id="calc">Узнать стоимость</button>
+    </div>
+    <div id="loading"><h2>Анализируем...</h2></div>
+
+    <script>
+        let tg = window.Telegram.WebApp; tg.expand();
+        let files = [];
+        document.getElementById('file').addEventListener('change', (e) => {
+            for (let f of e.target.files) files.push(f);
+            document.getElementById('list').innerHTML = files.map(f => `<div class="file-item">🖼 ${f.name}</div>`).join('');
+            document.getElementById('calc').style.display = files.length > 0 ? 'block' : 'none';
+        });
+        document.getElementById('calc').addEventListener('click', () => {
+            document.getElementById('main').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            setTimeout(() => {
+                tg.sendData(JSON.stringify({ action: "calculate", files_count: files.length }));
+                tg.close();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
