@@ -14,9 +14,29 @@ DB_PATH = os.getenv("DB_PATH", "bot.db")
 WEBAPP_URL = "https://deimosept-dev.github.io/Voice_bot/"
 ADMIN_ID = int(os.getenv("ADMIN_ID", "1636139244"))
 
-# Базовая цена аккаунта и стоимость за 1 000 очков коллекции (в рублях)
-BASE_PRICE = 1500
+BASE_PRICE = 0
 PRICE_PER_1000_PTS = 102.44
+
+RANKS = {
+    "none": ("Ниже Epic", 0),
+    "epic": ("Epic", 51),
+    "legend": ("Legend", 256),
+    "mythic": ("Mythic", 768),
+    "honor": ("Mythical Honor", 1537),
+    "glory": ("Mythical Glory", 5122),
+    "immortal": ("Mythical Immortal", 10244),
+}
+
+SKIN_LABELS = {
+    "legendary": "Легендарные",
+    "exquisite_grace": "Изящные",
+    "exquisite": "Изысканные",
+    "deluxe": "Роскошные",
+    "exceptional": "Исключительные",
+    "common": "Обычные",
+    "painted": "Окраски для обликов",
+    "grand_appearance": "Великолепный облик",
+}
 
 
 def db():
@@ -54,6 +74,14 @@ def _num(val, default=0.0):
         return default
 
 
+def _winrate_bonus(winrate: float, matches: int) -> int:
+    if winrate <= 60 or matches <= 0:
+        return 0
+    match_factor = min(matches / 3000.0, 1.0)
+    extra_wr = min(winrate - 60.0, 20.0)
+    return round(extra_wr * 163.8 * match_factor)
+
+
 dp = Dispatcher()
 
 
@@ -66,8 +94,8 @@ async def cmd_start(message: Message):
         resize_keyboard=True,
     )
     await message.answer(
-        "👋 Привет! Нажми на кнопку внизу, чтобы открыть калькулятор.\n\n"
-        "Введи свои данные, и я рассчитаю стоимость аккаунта.",
+        "👋 Привет! Нажми кнопку внизу, чтобы открыть калькулятор MLBB.\n\n"
+        "Укажи очки коллекции, ранг и статистику — я рассчитаю примерную стоимость.",
         reply_markup=kb,
     )
 
@@ -81,63 +109,51 @@ async def handle_webapp(message: Message):
 
         d = payload.get("data") if isinstance(payload.get("data"), dict) else {}
 
+        collection_points = max(0, int(_num(d.get("collection_points"), 0)))
+        rank_key = str(d.get("rank") or "none")
+        winrate = max(0.0, min(100.0, _num(d.get("winrate"), 0.0)))
+        matches = max(0, int(_num(d.get("matches"), 0)))
+
         bonuses = 0
         details = []
 
-        rank = d.get("rank")
-        if rank == "immortal":
-            bonuses += 11500
-            details.append("• Ранг: <b>Immortal</b> (+11 500 ₽)")
-        elif rank == "glory":
-            bonuses += 5750
-            details.append("• Ранг: <b>Mythical Glory</b> (+5 750 ₽)")
-
-        winrate = max(0.0, min(100.0, _num(d.get("winrate"), 0.0)))
-        matches = max(0, int(_num(d.get("matches"), 0)))
-        if winrate >= 60 and matches >= 1000 and winrate > 60:
-            wr_bonus = int((winrate - 60) * 300)
-            if wr_bonus > 0:
-                bonuses += wr_bonus
-                details.append(f"• Винрейт: {winrate:g}% (+{wr_bonus} ₽)")
-
-        collection_points = max(0, int(_num(d.get("collection_points"), 0)))
         if collection_points > 0:
-            collection_price = round((collection_points / 1000) * PRICE_PER_1000_PTS)
-            bonuses += collection_price
-            details.append(f"• Очки коллекции: {collection_points} pts (+{collection_price} ₽)")
+            col_rub = round((collection_points / 1000.0) * PRICE_PER_1000_PTS)
+            bonuses += col_rub
+            details.append(f"• Очки коллекции ({collection_points:,} pts): <b>+{col_rub:,} ₽</b>".replace(",", " "))
+
+        rank_name, rank_price = RANKS.get(rank_key, RANKS["none"])
+        if rank_price > 0:
+            bonuses += rank_price
+            details.append(f"• Ранг ({rank_name}): <b>+{rank_price:,} ₽</b>".replace(",", " "))
+
+        wr_bonus = _winrate_bonus(winrate, matches)
+        if wr_bonus > 0:
+            bonuses += wr_bonus
+            details.append(f"• Винрейт ({winrate:g}%, {matches:,} матчей): <b>+{wr_bonus:,} ₽</b>".replace(",", " "))
 
         skins = d.get("skins") if isinstance(d.get("skins"), dict) else {}
-        skin_names = {
-            "legendary": "Легендарные",
-            "exquisite_grace": "Изящные",
-            "exquisite": "Изысканные",
-            "deluxe": "Роскошные",
-            "exceptional": "Исключительные",
-            "common": "Обычные",
-            "painted": "Окраски для обликов",
-            "grand_appearance": "Великолепный облик",
-        }
-        chosen_skins = []
-        for key, label in skin_names.items():
+        chosen = []
+        for key, label in SKIN_LABELS.items():
             cnt = max(0, int(_num(skins.get(key), 0)))
             if cnt > 0:
-                chosen_skins.append(f"{label}: {cnt}")
-        if chosen_skins:
-            details.append("• Облики: " + ", ".join(chosen_skins))
+                chosen.append(f"{label}: {cnt}")
+        if chosen:
+            details.append("• Облики: " + ", ".join(chosen))
 
         total_price = BASE_PRICE + bonuses
 
         if not details:
-            details.append("• Базовый аккаунт без выдающихся заслуг.")
+            details.append("• Пустой аккаунт без очков коллекции и бонусов.")
 
         details_text = "\n".join(details)
+        total_formatted = f"{total_price:,}".replace(",", " ")
 
         answer = (
-            f"<b>📊 Оценка аккаунта готова!</b>\n\n"
-            f"• Базовая цена: {BASE_PRICE} ₽\n"
+            f"<b>📊 Оценка аккаунта MLBB</b>\n\n"
             f"{details_text}\n\n"
-            f"<b>💰 Итоговая стоимость: {total_price} рублей</b>\n\n"
-            f"<i>Совет: Чтобы продать быстрее, выставьте цену на 10-15% ниже оценки.</i>"
+            f"<b>💰 Итоговая оценка: {total_formatted} ₽</b>\n\n"
+            f"<i>Совет: Для быстрой продажи ориентируйтесь на цену на 10–15% ниже оценки.</i>"
         )
 
         await message.answer(answer, parse_mode="HTML")
@@ -146,7 +162,7 @@ async def handle_webapp(message: Message):
 
     except Exception as e:
         print("WebApp error:", e)
-        await message.answer("❌ Ошибка при расчете. Попробуй еще раз.")
+        await message.answer("❌ Не удалось выполнить расчёт. Попробуй ещё раз.")
 
 
 @dp.message(Command("admin"))
@@ -159,7 +175,7 @@ async def cmd_admin(message: Message):
     await message.answer(
         f"📊 <b>Статистика:</b>\n\n"
         f"👥 Пользователей: {total_users}\n"
-        f"💰 Сделали расчет: {total_calcs}",
+        f"💰 Сделали расчёт: {total_calcs}",
         parse_mode="HTML",
     )
 
