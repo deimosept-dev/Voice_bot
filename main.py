@@ -1,215 +1,201 @@
 import asyncio
+import base64
+import hashlib
+import hmac
+import json
+import logging
 import os
-import sqlite3
+import time
+from pathlib import Path
+from urllib.parse import parse_qsl
+
 import httpx
-import random
-from contextlib import closing
-
-from aiogram import Bot, Dispatcher, F
+from aiohttp import web
+from aiogram import Bot, Dispatcher
 from aiogram.filters import CommandStart
-from aiogram.types import (
-    Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton,
-    ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
+
+from pricing import ACCESS, RANKS, SKIN_TIERS, calculate
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("mlbb")
+
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
+WEBAPP_URL = os.environ.get("WEBAPP_URL", "")
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
+PORT = int(os.environ.get("PORT", "8080"))
+HOURLY_LIMIT = int(os.environ.get("HOURLY_LIMIT", "5"))
+MAX_PHOTOS = 10
+
+BASE_DIR = Path(__file__).parent
+usage = {}
+
+TOOL = {
+    "name": "report_account",
+    "description": "Сообщить данные аккаунта Mobile Legends, найденные на скриншотах.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "skins": {
+                "type": "object",
+                "description": "Количество скинов по тирам. Только то, что видно на скринах.",
+                "properties": {k: {"type": "integer"} for k in SKIN_TIERS},
+            },
+            "collection_points": {"type": ["integer", "null"]},
+            "highest_rank": {"type": "string", "enum": list(RANKS) + ["unknown"]},
+            "current_rank": {"type": ["string", "null"]},
+            "win_rate": {"type": ["number", "null"]},
+            "ranked_matches": {"type": ["integer", "null"]},
+            "heroes_owned": {"type": ["integer", "null"]},
+            "maxed_emblems": {"type": ["integer", "null"]},
+            "diamonds": {"type": ["integer", "null"]},
+            "notes": {
+                "type": "string",
+                "description": "По-русски: что не удалось определить и каких скриншотов не хватает.",
+            },
+        },
+        "required": ["skins", "highest_rank", "notes"],
+    },
+}
+
+PROMPT = (
+    "Это скриншоты аккаунта Mobile Legends: Bang Bang. Найди на них данные и вызови report_account.\n"
+    "Тиры скинов: Supreme (Legend), Grand (Collab/Aspirants), Exquisite (Collector/Lucky Box), "
+    "Deluxe (Epic/Zodiac/Lightborn), Exceptional (Special/Starlight), Common (Basic/Elite/Season), Painted.\n"
+    "Правила: считай только то, что реально видно. Ничего не додумывай. Если данных нет, ставь null "
+    "(для скинов 0, для ранга unknown) и напиши в notes, чего не хватает. "
+    "Если один и тот же экран есть на нескольких скринах, не считай дважды."
 )
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-ZVENO_API_KEY = os.getenv("ZVENO_API_KEY")
-DB_PATH = os.getenv("DB_PATH", "bot.db")
-MODEL_NAME = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
-# --- БАЗА ДАННЫХ ---
-def db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def check_init_data(init_data):
+    """Проверка подписи Telegram, чтобы чужие не тратили ваш ключ ИИ."""
+    parsed = dict(parse_qsl(init_data, keep_blank_values=True))
+    received = parsed.pop("hash", None)
+    if not received:
+        return None
+    check = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
+    secret = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+    calc = hmac.new(secret, check.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calc, received):
+        return None
+    try:
+        return json.loads(parsed.get("user", "{}")).get("id")
+    except ValueError:
+        return None
 
-def init_db():
-    with closing(db()) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                name TEXT,
-                dob TEXT
-            )
-        """)
-        conn.commit()
 
-def get_user(user_id):
-    with closing(db()) as conn:
-        return conn.execute("SELECT * FROM users WHERE user_id=?", (user_id,)).fetchone()
+def rate_limited(user_id):
+    now = time.time()
+    recent = [t for t in usage.get(user_id, []) if now - t < 3600]
+    if len(recent) >= HOURLY_LIMIT:
+        usage[user_id] = recent
+        return True
+    recent.append(now)
+    usage[user_id] = recent
+    return False
 
-def save_user(user_id, name, dob):
-    with closing(db()) as conn:
-        conn.execute("INSERT OR REPLACE INTO users(user_id, name, dob) VALUES(?, ?, ?)", (user_id, name, dob))
-        conn.commit()
 
-# --- СОСТОЯНИЯ ---
-class UserState(StatesGroup):
-    waiting_name = State()
-    waiting_dob = State()
-    waiting_question = State()
-    waiting_compat = State()
+async def extract_from_images(images):
+    content = []
+    for media_type, raw in images:
+        if media_type not in ("image/jpeg", "image/png", "image/webp", "image/gif"):
+            media_type = "image/jpeg"
+        content.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": media_type,
+                       "data": base64.b64encode(raw).decode()},
+        })
+    content.append({"type": "text", "text": PROMPT})
 
-# --- КЛАВИАТУРЫ ---
-def get_main_kb():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔮 Личный разбор", callback_data="menu_personal")],
-        [InlineKeyboardButton(text="🌟 Гороскоп на сегодня", callback_data="menu_daily")],
-        [InlineKeyboardButton(text="📅 Прогноз на неделю", callback_data="menu_weekly")],
-        [InlineKeyboardButton(text="💞 Совместимость", callback_data="menu_compat")]
-    ])
+    async with httpx.AsyncClient(timeout=120) as client:
+        r = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": MODEL,
+                "max_tokens": 1500,
+                "tools": [TOOL],
+                "tool_choice": {"type": "tool", "name": "report_account"},
+                "messages": [{"role": "user", "content": content}],
+            },
+        )
+    if r.status_code != 200:
+        log.error("Anthropic %s: %s", r.status_code, r.text[:500])
+        raise RuntimeError("Сервис распознавания временно недоступен")
+    for block in r.json().get("content", []):
+        if block.get("type") == "tool_use":
+            return block["input"]
+    raise RuntimeError("Не удалось разобрать скриншоты")
 
-def get_back_kb():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔙 В главное меню", callback_data="menu_main")]
-    ])
 
-# Нижняя клавиатура с крутой кнопкой
-def get_start_reply_kb():
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="🔮 Открыть тайны судьбы")]],
-        resize_keyboard=True,
-        one_time_keyboard=False
-    )
+async def valuate(request):
+    try:
+        form = await request.post()
+        user_id = check_init_data(form.get("init_data", ""))
+        if user_id is None:
+            return web.json_response({"ok": False, "error": "Откройте приложение через Telegram"}, status=403)
+        if rate_limited(user_id):
+            return web.json_response({"ok": False, "error": f"Лимит {HOURLY_LIMIT} оценок в час. Попробуйте позже."}, status=429)
+
+        images = []
+        for f in form.getall("photos", [])[:MAX_PHOTOS]:
+            if hasattr(f, "file"):
+                images.append((f.content_type, f.file.read()))
+        if not images:
+            return web.json_response({"ok": False, "error": "Нет фото"}, status=400)
+
+        access = form.get("access", "safe")
+        if access not in ACCESS:
+            access = "safe"
+        data = await extract_from_images(images)
+        return web.json_response({"ok": True, "extracted": data, "result": calculate(data, access)})
+    except Exception as e:
+        log.exception("valuate failed")
+        return web.json_response({"ok": False, "error": str(e) or "Ошибка сервера"}, status=500)
+
+
+async def index(request):
+    return web.FileResponse(BASE_DIR / "index.html")
+
+
+async def health(request):
+    return web.Response(text="ok")
+
 
 dp = Dispatcher()
 
-BASE_PROMPT = "Ты — Олеся Иванченко, астропсихолог. Твой стиль: прямой, дерзкий, с юмором, но очень глубокий. Ты связываешь ситуацию с астрологией и психологией. Не используй LaTeX (никаких $, \\vec). Пиши текстом с выделением **жирным**."
 
-async def ask_ai(prompt_text, system_extra=""):
-    headers = {"Authorization": f"Bearer {ZVENO_API_KEY}", "Content-Type": "application/json"}
-    payload = {
-        "model": MODEL_NAME,
-        "messages": [
-            {"role": "system", "content": BASE_PROMPT + " " + system_extra},
-            {"role": "user", "content": prompt_text}
-        ]
-    }
-    async with httpx.AsyncClient(timeout=60.0) as client:
-        response = await client.post("https://api.zveno.ai/v1/chat/completions", headers=headers, json=payload)
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-
-# --- ХЕНДЛЕРЫ ---
 @dp.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext):
-    user = get_user(message.from_user.id)
-    if user and user["dob"]:
-        await message.answer(
-            f"С возвращением, {user['name']}! Я тебя помню. Что сегодня разбираем?",
-            reply_markup=get_main_kb()
-        )
-    else:
-        await message.answer(
-            "👋 Привет! Я твой личный астропсихолог.\n\nНажми на кнопку ниже, чтобы начать наше знакомство.",
-            reply_markup=get_start_reply_kb()
-        )
-
-# Ловим нажатие на новую красивую кнопку
-@dp.message(F.text == "🔮 Открыть тайны судьбы")
-async def process_start_button(message: Message, state: FSMContext):
+async def start(message: Message):
+    kb = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="📸 Оценить аккаунт", web_app=WebAppInfo(url=WEBAPP_URL))
+    ]])
     await message.answer(
-        "Давай познакомимся. Как тебя зовут?", 
-        reply_markup=ReplyKeyboardRemove() # Убираем нижнюю клавиатуру, чтобы не мешала
-    )
-    await state.set_state(UserState.waiting_name)
-
-@dp.message(UserState.waiting_name)
-async def process_name(message: Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer(f"Приятно познакомиться, {message.text}. А теперь напиши свою **дату рождения** в формате ДД.ММ.ГГГГ (например, 15.08.1995). Мне нужно рассчитать твою натальную карту.")
-    await state.set_state(UserState.waiting_dob)
-
-@dp.message(UserState.waiting_dob)
-async def process_dob(message: Message, state: FSMContext):
-    data = await state.get_data()
-    name = data.get('name')
-    dob = message.text
-    save_user(message.from_user.id, name, dob)
-    await state.clear()
-    
-    await message.answer(
-        "✨ Отлично! Твоя карта построена. Теперь я знаю, какие планеты за что отвечают в твоей жизни.\n\nВыбери, с чего начнем:",
-        reply_markup=get_main_kb()
+        "Привет! Я оценю твой аккаунт MLBB по скриншотам.\n"
+        "Нажми кнопку и загрузи скрины профиля, коллекции скинов, героев и эмблем.\n\n"
+        "⚠️ Оценка примерная. Покупка и продажа аккаунтов нарушает правила Moonton.",
+        reply_markup=kb,
     )
 
-@dp.callback_query(F.data == "menu_main")
-async def cb_main(cq: CallbackQuery, state: FSMContext):
-    await state.clear()
-    await cq.message.edit_text("Что разбираем дальше?", reply_markup=get_main_kb())
-    await cq.answer()
-
-@dp.callback_query(F.data == "menu_personal")
-async def cb_personal(cq: CallbackQuery, state: FSMContext):
-    await cq.message.edit_text("🔮 Давай по чесноку. Что происходит в твоей жизни прямо сейчас? Опиши ситуацию (любовь, деньги, самореализация), и я посмотрю, какие транзиты на тебя влияют.")
-    await state.set_state(UserState.waiting_question)
-    await cq.answer()
-
-@dp.message(UserState.waiting_question)
-async def process_question(message: Message, state: FSMContext):
-    user = get_user(message.from_user.id)
-    status = await message.answer("✨ Анализирую твои транзиты...")
-    prompt = f"Меня зовут {user['name']}, я родился {user['dob']}. Моя ситуация: {message.text}. Дай жесткий, но полезный разбор. В конце задай один неудобный вопрос."
-    try:
-        answer = await ask_ai(prompt)
-        await message.answer(answer, reply_markup=get_back_kb())
-        await status.delete()
-    except Exception:
-        await status.edit_text("❌ Звезды сегодня не на связи. Попробуй позже.", reply_markup=get_back_kb())
-    await state.clear()
-
-@dp.callback_query(F.data == "menu_daily")
-async def cb_daily(cq: CallbackQuery):
-    user = get_user(cq.from_user.id)
-    await cq.message.edit_text("🌟 Смотрю твой день...")
-    prompt = f"Я {user['name']}, родился {user['dob']}. Дай мне астропрогноз на сегодня. Расскажи про энергию дня, на чем сфокусироваться и чего избегать."
-    try:
-        answer = await ask_ai(prompt)
-        await cq.message.edit_text(answer, reply_markup=get_back_kb())
-    except:
-        await cq.message.edit_text("❌ Ошибка. Попробуй позже.", reply_markup=get_back_kb())
-    await cq.answer()
-
-@dp.callback_query(F.data == "menu_weekly")
-async def cb_weekly(cq: CallbackQuery):
-    user = get_user(cq.from_user.id)
-    await cq.message.edit_text("📅 Заглядываю в твою неделю...")
-    prompt = f"Я {user['name']}, родился {user['dob']}. Дай прогноз на неделю. Какие сферы активируются? Дай 3 конкретных совета."
-    try:
-        answer = await ask_ai(prompt)
-        await cq.message.edit_text(answer, reply_markup=get_back_kb())
-    except:
-        await cq.message.edit_text("❌ Ошибка. Попробуй позже.", reply_markup=get_back_kb())
-    await cq.answer()
-
-@dp.callback_query(F.data == "menu_compat")
-async def cb_compat(cq: CallbackQuery, state: FSMContext):
-    await cq.message.edit_text("💞 Напиши дату рождения партнера в формате ДД.ММ.ГГГГ, и я скажу, что у вас за союз.")
-    await state.set_state(UserState.waiting_compat)
-    await cq.answer()
-
-@dp.message(UserState.waiting_compat)
-async def process_compat(message: Message, state: FSMContext):
-    user = get_user(message.from_user.id)
-    status = await message.answer("💞 Считаю синастрию...")
-    prompt = f"Меня зовут {user['name']}, я родился {user['dob']}. Мой партнер родился {message.text}. Сделай разбор совместимости. Укажи плюсы, минусы и главную опасность."
-    try:
-        answer = await ask_ai(prompt)
-        await message.answer(answer, reply_markup=get_back_kb())
-        await status.delete()
-    except Exception:
-        await status.edit_text("❌ Ошибка. Попробуй позже.")
-    await state.clear()
 
 async def main():
-    if not BOT_TOKEN or not ZVENO_API_KEY:
-        return
-    init_db()
+    app = web.Application(client_max_size=40 * 1024 * 1024)
+    app.add_routes([web.get("/", index), web.get("/health", health), web.post("/api/valuate", valuate)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", PORT).start()
+    log.info("Web server on port %s", PORT)
+
     bot = Bot(BOT_TOKEN)
-    print("🚀 Бот с крутой кнопкой запущен!")
+    await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
