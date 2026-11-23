@@ -31,15 +31,15 @@ RANKS = {
     "immortal": ("Mythical Immortal", 10244),
 }
 
-SKIN_LABELS = {
-    "legendary": "Легендарные",
-    "exquisite_grace": "Изящные",
-    "exquisite": "Изысканные",
-    "deluxe": "Роскошные",
-    "exceptional": "Исключительные",
-    "common": "Обычные",
-    "painted": "Окраски для обликов",
-    "grand_appearance": "Великолепный облик",
+SKIN_SPECS = {
+    "legendary":        ("Легендарные", 4000, 410, True),
+    "exquisite_grace":  ("Изящные", 3000, 307, True),
+    "exquisite":        ("Изысканные", 2000, 205, True),
+    "deluxe":           ("Роскошные", 400, 41, True),
+    "exceptional":      ("Исключительные", 200, 20, True),
+    "common":           ("Обычные", 100, 10, True),
+    "painted":          ("Окраски для обликов", 40, 4, True),
+    "grand_appearance": ("Великолепный облик", 0, 0, False),
 }
 
 
@@ -90,6 +90,10 @@ def _fmt_rub(amount: int) -> str:
     return f"{amount:,}".replace(",", " ") + " ₽"
 
 
+def _fmt_int(amount: int) -> str:
+    return f"{amount:,}".replace(",", " ")
+
+
 dp = Dispatcher()
 
 
@@ -103,7 +107,7 @@ async def cmd_start(message: Message):
     )
     await message.answer(
         "👋 Привет! Нажми кнопку внизу, чтобы открыть калькулятор MLBB.\n\n"
-        "Укажи очки коллекции, ранг и статистику — я рассчитаю примерную стоимость.",
+        "Укажи очки коллекции, ранг и облики — я рассчитаю примерную стоимость.",
         reply_markup=kb,
     )
 
@@ -122,13 +126,28 @@ async def handle_webapp(message: Message):
         winrate = max(0.0, min(100.0, _num(d.get("winrate"), 0.0)))
         matches = max(0, int(_num(d.get("matches"), 0)))
 
+        skins = d.get("skins") if isinstance(d.get("skins"), dict) else {}
+        skins_pts = 0
+        skins_rub = 0
+        chosen = []
+
+        for key, (label, pts_per_one, rub_per_one, _) in SKIN_SPECS.items():
+            cnt = max(0, int(_num(skins.get(key), 0)))
+            if cnt > 0:
+                skins_pts += cnt * pts_per_one
+                skins_rub += cnt * rub_per_one
+                chosen.append(f"{label}: {cnt}")
+
+        manual_rub = round((collection_points / 1000.0) * PRICE_PER_1000_PTS) if collection_points > 0 else 0
+        effective_pts = max(collection_points, skins_pts)
+        collection_rub = max(manual_rub, skins_rub)
+
         bonuses = 0
         details = []
 
-        if collection_points > 0:
-            col_rub = round((collection_points / 1000.0) * PRICE_PER_1000_PTS)
-            bonuses += col_rub
-            details.append(f"• Очки коллекции ({collection_points:,} pts): <b>+{_fmt_rub(col_rub)}</b>".replace(",", " "))
+        if collection_rub > 0:
+            bonuses += collection_rub
+            details.append(f"• Коллекция ({_fmt_int(effective_pts)} pts): <b>+{_fmt_rub(collection_rub)}</b>")
 
         rank_name, rank_price = RANKS.get(rank_key, RANKS["none"])
         if rank_price > 0:
@@ -138,14 +157,8 @@ async def handle_webapp(message: Message):
         wr_bonus = _winrate_bonus(winrate, matches)
         if wr_bonus > 0:
             bonuses += wr_bonus
-            details.append(f"• Винрейт ({winrate:g}%, {matches:,} матчей): <b>+{_fmt_rub(wr_bonus)}</b>".replace(",", " "))
+            details.append(f"• Винрейт ({winrate:g}%, {_fmt_int(matches)} матчей): <b>+{_fmt_rub(wr_bonus)}</b>")
 
-        skins = d.get("skins") if isinstance(d.get("skins"), dict) else {}
-        chosen = []
-        for key, label in SKIN_LABELS.items():
-            cnt = max(0, int(_num(skins.get(key), 0)))
-            if cnt > 0:
-                chosen.append(f"{label}: {cnt}")
         if chosen:
             details.append("• Облики: " + ", ".join(chosen))
 
