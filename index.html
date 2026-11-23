@@ -3,23 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MLBB Valuation Terminal</title>
+    <title>MLBB Appraisal</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
         :root {
-            --bg-0: #07080f;
-            --bg-1: #0d101d;
-            --card: rgba(18, 22, 38, 0.78);
-            --border: rgba(255, 255, 255, 0.08);
-            --border-accent: rgba(56, 189, 248, 0.35);
-            --text: #f8fafc;
-            --muted: #94a3b8;
-            --cyan: #38bdf8;
-            --violet: #a855f7;
-            --gold: #fbbf24;
-            --emerald: #34d399;
+            --bg-base: #09090d;
+            --bg-elevated: #111118;
+            --surface: rgba(20, 19, 27, 0.86);
+            --surface-soft: rgba(255, 255, 255, 0.035);
+            --line: rgba(255, 255, 255, 0.075);
+            --line-crimson: rgba(190, 24, 93, 0.34);
+            --ink: #f4f4f6;
+            --muted: #9898a8;
+            --crimson: #be185d;
+            --crimson-bright: #e11d48;
+            --ice: #7dd3fc;
+            --amber: #fbbf24;
+            --ok: #34d399;
         }
 
         * {
@@ -30,227 +32,234 @@
 
         body {
             margin: 0;
-            padding: 16px 14px 108px;
+            padding: 16px 14px 110px;
             min-height: 100vh;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--text);
+            color: var(--ink);
             background:
-                radial-gradient(circle at 12% 8%, rgba(56, 189, 248, 0.16), transparent 42%),
-                radial-gradient(circle at 88% 14%, rgba(168, 85, 247, 0.18), transparent 45%),
-                radial-gradient(circle at 50% 100%, rgba(56, 189, 248, 0.08), transparent 55%),
-                linear-gradient(180deg, var(--bg-1) 0%, var(--bg-0) 100%);
+                radial-gradient(circle at 85% 6%, rgba(159, 18, 57, 0.22), transparent 42%),
+                radial-gradient(circle at 12% 18%, rgba(125, 211, 252, 0.08), transparent 45%),
+                linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-base) 100%);
             font-variant-numeric: tabular-nums;
         }
 
-        .container {
+        .wrap {
             max-width: 480px;
             margin: 0 auto;
         }
 
-        .header {
+        .top-bar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
+            gap: 10px;
             margin-bottom: 14px;
         }
 
-        .brand-badge {
+        .pill {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 5px 10px;
+            gap: 7px;
+            padding: 5px 11px;
             border-radius: 999px;
             font-size: 11px;
             font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
-            color: var(--cyan);
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: #fda4af;
+            background: rgba(159, 18, 57, 0.16);
+            border: 1px solid rgba(225, 29, 72, 0.32);
         }
 
-        .brand-badge::before {
-            content: "";
+        .pill-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--emerald);
-            box-shadow: 0 0 8px var(--emerald);
+            background: var(--crimson-bright);
+            box-shadow: 0 0 8px rgba(225, 29, 72, 0.85);
         }
 
-        .reset-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
+        .btn-reset {
+            background: var(--surface-soft);
+            border: 1px solid var(--line);
             color: var(--muted);
-            padding: 6px 11px;
+            padding: 6px 12px;
             border-radius: 10px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.18s ease;
+            transition: all 0.16s ease;
         }
 
-        .reset-btn:active {
+        .btn-reset:active {
             transform: scale(0.96);
-            color: var(--text);
+            color: var(--ink);
             border-color: rgba(255, 255, 255, 0.2);
         }
 
-        .title {
-            margin: 0 0 4px;
+        .heading {
+            margin: 0 0 5px;
             font-size: 24px;
             font-weight: 900;
-            letter-spacing: -0.02em;
-            background: linear-gradient(90deg, #ffffff 0%, var(--cyan) 55%, var(--violet) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+            color: var(--ink);
         }
 
-        .subtitle {
+        .heading span {
+            color: #fb7185;
+        }
+
+        .lead {
             margin: 0 0 16px;
             font-size: 13px;
+            line-height: 1.45;
             color: var(--muted);
-            line-height: 1.4;
         }
 
-        .live-card {
+        /* Главный экран оценки */
+        .score-panel {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(135deg, rgba(24, 30, 52, 0.92), rgba(15, 19, 34, 0.92));
-            border: 1px solid var(--border-accent);
-            border-radius: 18px;
-            padding: 14px 16px;
+            background: linear-gradient(145deg, rgba(30, 18, 27, 0.92), rgba(16, 16, 24, 0.95));
+            border: 1px solid var(--line-crimson);
+            border-radius: 20px;
+            padding: 15px 16px;
             margin-bottom: 14px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.06);
         }
 
-        .live-card::after {
+        .score-panel::before {
             content: "";
             position: absolute;
-            top: -40px;
-            right: -30px;
-            width: 120px;
-            height: 120px;
-            background: radial-gradient(circle, rgba(168, 85, 247, 0.28), transparent 70%);
+            top: -45px;
+            right: -35px;
+            width: 130px;
+            height: 130px;
+            background: radial-gradient(circle, rgba(225, 29, 72, 0.24), transparent 72%);
             pointer-events: none;
         }
 
-        .live-top {
+        .score-top {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: baseline;
             gap: 8px;
         }
 
-        .live-label {
+        .score-caption {
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.08em;
             color: var(--muted);
         }
 
-        .live-skins-tag {
+        .score-badge {
             font-size: 11px;
-            font-weight: 600;
-            color: var(--gold);
+            font-weight: 700;
+            color: var(--amber);
         }
 
-        .live-price {
-            margin-top: 4px;
-            font-size: 28px;
+        .score-value {
+            margin-top: 5px;
+            font-size: 30px;
             font-weight: 900;
-            letter-spacing: -0.02em;
-            color: var(--text);
+            letter-spacing: -0.03em;
+            color: var(--ink);
         }
 
-        .live-sub {
-            margin-top: 4px;
-            font-size: 11.5px;
+        .score-meta {
+            margin-top: 5px;
+            font-size: 12px;
             color: var(--muted);
         }
 
-        .section {
-            background: var(--card);
+        /* Блоки параметров */
+        .box {
+            background: var(--surface);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
+            border: 1px solid var(--line);
             border-radius: 18px;
             padding: 15px;
             margin-bottom: 14px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
         }
 
-        .section-head {
+        .box-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 12px;
         }
 
-        .section-title {
+        .box-title {
             font-size: 12px;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: var(--cyan);
+            color: var(--ink);
         }
 
-        .section-hint {
+        .box-tag {
             font-size: 11px;
-            color: var(--muted);
+            font-weight: 600;
+            color: #fda4af;
         }
 
-        .field-row {
+        .row-field {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 9px 0;
+            padding: 10px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .field-row:last-child {
+        .row-field:first-child {
+            padding-top: 2px;
+        }
+
+        .row-field:last-child {
             border-bottom: none;
             padding-bottom: 2px;
         }
 
-        .field-row:first-child {
-            padding-top: 2px;
-        }
-
-        .field-label {
-            font-size: 13.5px;
-            font-weight: 500;
-            color: #e2e8f0;
+        .field-text {
             flex: 1;
             min-width: 0;
         }
 
-        .field-sub {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 2px;
-            line-height: 1.3;
+        .field-title {
+            display: block;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--ink);
         }
 
-        .field-control {
-            flex: 0 0 154px;
+        .field-desc {
+            display: block;
+            margin-top: 2px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: var(--muted);
+        }
+
+        .field-input-wrap {
+            flex: 0 0 156px;
         }
 
         select, input[type="number"] {
             width: 100%;
             height: 38px;
             border-radius: 11px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            background: rgba(6, 9, 18, 0.72);
-            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.11);
+            background: rgba(8, 8, 13, 0.78);
+            color: var(--ink);
             font-family: inherit;
             font-size: 13.5px;
             font-weight: 600;
             outline: none;
-            transition: border-color 0.18s ease, box-shadow 0.18s ease;
+            transition: border-color 0.16s ease, box-shadow 0.16s ease;
         }
 
         select {
@@ -263,11 +272,12 @@
         }
 
         select:focus, input[type="number"]:focus {
-            border-color: var(--cyan);
-            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+            border-color: var(--crimson-bright);
+            box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
         }
 
-        .skin-row {
+        /* Список обликов */
+        .skin-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -279,59 +289,56 @@
             transition: background 0.15s ease;
         }
 
-        .skin-row.active {
-            background: rgba(56, 189, 248, 0.07);
+        .skin-item.has-items {
+            background: rgba(190, 24, 93, 0.09);
         }
 
-        .skin-row:last-child {
+        .skin-item:last-child {
             border-bottom: none;
         }
 
-        .skin-info {
+        .skin-left {
             min-width: 0;
             flex: 1;
         }
 
-        .skin-name {
+        .skin-title {
             font-size: 13.5px;
             font-weight: 700;
-            color: var(--text);
+            color: var(--ink);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .skin-meta {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .skin-sub {
             margin-top: 2px;
             font-size: 11px;
             color: var(--muted);
         }
 
-        .skin-pts {
-            color: var(--cyan);
+        .skin-sub strong {
+            color: var(--ice);
             font-weight: 600;
         }
 
-        .stepper {
+        .qty-box {
             display: flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(6, 9, 18, 0.65);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            gap: 5px;
             padding: 3px;
             border-radius: 11px;
+            background: rgba(8, 8, 13, 0.72);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .step-btn {
+        .qty-btn {
             width: 30px;
             height: 30px;
             border-radius: 8px;
             border: none;
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text);
+            background: rgba(255, 255, 255, 0.07);
+            color: var(--ink);
             font-size: 17px;
             font-weight: 700;
             line-height: 1;
@@ -342,233 +349,240 @@
             transition: all 0.14s ease;
         }
 
-        .step-btn:active {
+        .qty-btn:active {
             transform: scale(0.9);
-            background: linear-gradient(135deg, var(--violet), var(--cyan));
+            background: var(--crimson);
         }
 
-        .step-val {
+        .qty-num {
             min-width: 28px;
             text-align: center;
             font-size: 13.5px;
             font-weight: 800;
-            color: var(--text);
+            color: var(--ink);
         }
 
-        .dock {
+        /* Нижняя панель действия */
+        .footer-bar {
             position: fixed;
             left: 0;
             right: 0;
             bottom: 0;
             padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
-            background: linear-gradient(180deg, rgba(7, 8, 15, 0) 0%, rgba(7, 8, 15, 0.92) 32%, rgba(7, 8, 15, 0.98) 100%);
+            background: linear-gradient(180deg, rgba(9, 9, 13, 0) 0%, rgba(9, 9, 13, 0.92) 34%, rgba(9, 9, 13, 0.98) 100%);
             backdrop-filter: blur(10px);
             z-index: 20;
         }
 
-        .dock-inner {
+        .footer-inner {
             max-width: 480px;
             margin: 0 auto;
         }
 
-        .submit-btn {
+        .btn-submit {
             width: 100%;
             height: 50px;
             border: none;
             border-radius: 15px;
-            background: linear-gradient(90deg, var(--violet) 0%, #6366f1 50%, var(--cyan) 100%);
+            background: linear-gradient(90deg, #9f1239 0%, #be185d 52%, #2563eb 100%);
             color: #ffffff;
             font-family: inherit;
-            font-size: 14.5px;
+            font-size: 14px;
             font-weight: 800;
             letter-spacing: 0.04em;
             text-transform: uppercase;
             cursor: pointer;
-            box-shadow: 0 10px 26px rgba(99, 102, 241, 0.38);
+            box-shadow: 0 10px 26px rgba(159, 18, 57, 0.36);
             transition: transform 0.15s ease, filter 0.15s ease;
         }
 
-        .submit-btn:active {
+        .btn-submit:active {
             transform: scale(0.985);
             filter: brightness(1.06);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <span class="brand-badge">MLBB Valuation • Live</span>
-            <button type="button" class="reset-btn" onclick="resetForm()">Сбросить</button>
+    <div class="wrap">
+        <div class="top-bar">
+            <span class="pill"><span class="pill-dot"></span>MLBB Appraisal</span>
+            <button type="button" class="btn-reset" onclick="resetAll()">Сбросить</button>
         </div>
 
-        <h1 class="title">Оценка аккаунта MLBB</h1>
-        <p class="subtitle">Укажите очки коллекции, параметры профиля и облики — бот пришлёт расчёт в чат.</p>
+        <h1 class="heading">Оценка аккаунта <span>MLBB</span></h1>
+        <p class="lead">Введите очки коллекции, ранг и статистику — бот пришлёт подробный расчёт в чат.</p>
 
-        <div class="live-card">
-            <div class="live-top">
-                <span class="live-label">Ориентировочная оценка</span>
-                <span class="live-skins-tag" id="skinsSummary">Очки: 0 pts</span>
+        <div class="score-panel">
+            <div class="score-top">
+                <span class="score-caption">Предварительная оценка</span>
+                <span class="score-badge" id="ptsBadge">0 pts</span>
             </div>
-            <div class="live-price" id="livePrice">1 500 ₽</div>
-            <div class="live-sub" id="liveBreakdown">Коллекция: 0 ₽ • Винрейт 50%</div>
+            <div class="score-value" id="previewTotal">0 ₽</div>
+            <div class="score-meta" id="previewMeta">Коллекция: 0 ₽ • Ранг: Без ранга</div>
         </div>
 
-        <div class="section">
-            <div class="section-head">
-                <span class="section-title">Очки коллекции</span>
-                <span class="section-hint">Из профиля</span>
+        <div class="box">
+            <div class="box-header">
+                <span class="box-title">Коллекция и профиль</span>
+                <span class="box-tag">Основные параметры</span>
             </div>
 
-            <div class="field-row">
-                <div class="field-label">
-                    <label for="collection_points">Всего очков коллекции</label>
-                    <div class="field-sub">Например: 198000 (стоимость считается автоматически по очкам)</div>
+            <div class="row-field">
+                <div class="field-text">
+                    <label class="field-title" for="collection_points">Очки коллекции</label>
+                    <span class="field-desc">Общее число очков из профиля (например, 198000)</span>
                 </div>
-                <div class="field-control">
-                    <input type="number" id="collection_points" value="0" min="0" max="5000000" step="100" oninput="onParamChange()">
+                <div class="field-input-wrap">
+                    <input type="number" id="collection_points" value="0" min="0" max="5000000" step="100" oninput="refreshPreview()">
                 </div>
             </div>
-        </div>
 
-        <div class="section">
-            <div class="section-head">
-                <span class="section-title">Параметры профиля</span>
-                <span class="section-hint">Ранг и статистика</span>
-            </div>
-
-            <div class="field-row">
-                <label class="field-label" for="rank">Наивысший ранг</label>
-                <div class="field-control">
-                    <select id="rank" onchange="onParamChange()">
-                        <option value="none">Ниже Mythic</option>
+            <div class="row-field">
+                <div class="field-text">
+                    <label class="field-title" for="rank">Наивысший ранг</label>
+                    <span class="field-desc">Учитывается максимальное достижение</span>
+                </div>
+                <div class="field-input-wrap">
+                    <select id="rank" onchange="refreshPreview()">
+                        <option value="none">Ниже Epic</option>
+                        <option value="epic">Epic</option>
+                        <option value="legend">Legend</option>
+                        <option value="mythic">Mythic</option>
+                        <option value="honor">Mythical Honor</option>
                         <option value="glory">Mythical Glory</option>
                         <option value="immortal">Mythical Immortal</option>
                     </select>
                 </div>
             </div>
 
-            <div class="field-row">
-                <label class="field-label" for="winrate">Винрейт (%)</label>
-                <div class="field-control">
-                    <input type="number" id="winrate" value="50" min="0" max="100" step="0.1" oninput="onParamChange()">
+            <div class="row-field">
+                <div class="field-text">
+                    <label class="field-title" for="winrate">Винрейт (%)</label>
+                    <span class="field-desc">Бонус начисляется от 60%</span>
+                </div>
+                <div class="field-input-wrap">
+                    <input type="number" id="winrate" value="50" min="0" max="100" step="0.1" oninput="refreshPreview()">
                 </div>
             </div>
 
-            <div class="field-row">
-                <label class="field-label" for="matches">Ранговые матчи</label>
-                <div class="field-control">
-                    <input type="number" id="matches" value="0" min="0" max="100000" step="1" oninput="onParamChange()">
+            <div class="row-field">
+                <div class="field-text">
+                    <label class="field-title" for="matches">Ранговые матчи</label>
+                    <span class="field-desc">Влияет на вес бонуса за винрейт</span>
+                </div>
+                <div class="field-input-wrap">
+                    <input type="number" id="matches" value="0" min="0" max="100000" step="1" oninput="refreshPreview()">
                 </div>
             </div>
         </div>
 
-        <div class="section">
-            <div class="section-head">
-                <span class="section-title">Коллекция обликов</span>
-                <span class="section-hint">Для учёта в отчёте</span>
+        <div class="box">
+            <div class="box-header">
+                <span class="box-title">Облики по категориям</span>
+                <span class="box-tag" id="skinsCountTag">0 шт.</span>
             </div>
 
-            <div class="skin-row" id="row-legendary">
-                <div class="skin-info">
-                    <div class="skin-name">Легендарные</div>
-                    <div class="skin-meta"><span class="skin-pts">4 000 pts</span></div>
+            <div class="skin-item" id="item-legendary">
+                <div class="skin-left">
+                    <div class="skin-title">Легендарные</div>
+                    <div class="skin-sub"><strong>4 000 pts</strong> за облик</div>
                 </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('legendary', -1)">−</button>
-                    <span class="step-val" id="legendary">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('legendary', 1)">+</button>
-                </div>
-            </div>
-
-            <div class="skin-row" id="row-exquisite_grace">
-                <div class="skin-info">
-                    <div class="skin-name">Изящные</div>
-                    <div class="skin-meta"><span class="skin-pts">3 000 pts</span></div>
-                </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('exquisite_grace', -1)">−</button>
-                    <span class="step-val" id="exquisite_grace">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('exquisite_grace', 1)">+</button>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('legendary', -1)">−</button>
+                    <span class="qty-num" id="legendary">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('legendary', 1)">+</button>
                 </div>
             </div>
 
-            <div class="skin-row" id="row-exquisite">
-                <div class="skin-info">
-                    <div class="skin-name">Изысканные</div>
-                    <div class="skin-meta"><span class="skin-pts">2 000 pts</span></div>
+            <div class="skin-item" id="item-exquisite_grace">
+                <div class="skin-left">
+                    <div class="skin-title">Изящные</div>
+                    <div class="skin-sub"><strong>3 000 pts</strong> за облик</div>
                 </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('exquisite', -1)">−</button>
-                    <span class="step-val" id="exquisite">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('exquisite', 1)">+</button>
-                </div>
-            </div>
-
-            <div class="skin-row" id="row-deluxe">
-                <div class="skin-info">
-                    <div class="skin-name">Роскошные</div>
-                    <div class="skin-meta"><span class="skin-pts">400 pts</span></div>
-                </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('deluxe', -1)">−</button>
-                    <span class="step-val" id="deluxe">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('deluxe', 1)">+</button>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('exquisite_grace', -1)">−</button>
+                    <span class="qty-num" id="exquisite_grace">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('exquisite_grace', 1)">+</button>
                 </div>
             </div>
 
-            <div class="skin-row" id="row-exceptional">
-                <div class="skin-info">
-                    <div class="skin-name">Исключительные</div>
-                    <div class="skin-meta"><span class="skin-pts">200 pts</span></div>
+            <div class="skin-item" id="item-exquisite">
+                <div class="skin-left">
+                    <div class="skin-title">Изысканные</div>
+                    <div class="skin-sub"><strong>2 000 pts</strong> за облик</div>
                 </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('exceptional', -1)">−</button>
-                    <span class="step-val" id="exceptional">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('exceptional', 1)">+</button>
-                </div>
-            </div>
-
-            <div class="skin-row" id="row-common">
-                <div class="skin-info">
-                    <div class="skin-name">Обычные</div>
-                    <div class="skin-meta"><span class="skin-pts">100 pts</span></div>
-                </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('common', -1)">−</button>
-                    <span class="step-val" id="common">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('common', 1)">+</button>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('exquisite', -1)">−</button>
+                    <span class="qty-num" id="exquisite">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('exquisite', 1)">+</button>
                 </div>
             </div>
 
-            <div class="skin-row" id="row-painted">
-                <div class="skin-info">
-                    <div class="skin-name">Окраски для обликов</div>
-                    <div class="skin-meta"><span class="skin-pts">40 pts</span></div>
+            <div class="skin-item" id="item-deluxe">
+                <div class="skin-left">
+                    <div class="skin-title">Роскошные</div>
+                    <div class="skin-sub"><strong>400 pts</strong> за облик</div>
                 </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('painted', -1)">−</button>
-                    <span class="step-val" id="painted">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('painted', 1)">+</button>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('deluxe', -1)">−</button>
+                    <span class="qty-num" id="deluxe">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('deluxe', 1)">+</button>
                 </div>
             </div>
 
-            <div class="skin-row" id="row-grand_appearance">
-                <div class="skin-info">
-                    <div class="skin-name">Великолепный облик</div>
-                    <div class="skin-meta"><span class="skin-pts">0 pts</span><span>• Вне коллекции</span></div>
+            <div class="skin-item" id="item-exceptional">
+                <div class="skin-left">
+                    <div class="skin-title">Исключительные</div>
+                    <div class="skin-sub"><strong>200 pts</strong> за облик</div>
                 </div>
-                <div class="stepper">
-                    <button type="button" class="step-btn" onclick="updateCount('grand_appearance', -1)">−</button>
-                    <span class="step-val" id="grand_appearance">0</span>
-                    <button type="button" class="step-btn" onclick="updateCount('grand_appearance', 1)">+</button>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('exceptional', -1)">−</button>
+                    <span class="qty-num" id="exceptional">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('exceptional', 1)">+</button>
+                </div>
+            </div>
+
+            <div class="skin-item" id="item-common">
+                <div class="skin-left">
+                    <div class="skin-title">Обычные</div>
+                    <div class="skin-sub"><strong>100 pts</strong> за облик</div>
+                </div>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('common', -1)">−</button>
+                    <span class="qty-num" id="common">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('common', 1)">+</button>
+                </div>
+            </div>
+
+            <div class="skin-item" id="item-painted">
+                <div class="skin-left">
+                    <div class="skin-title">Окраски для обликов</div>
+                    <div class="skin-sub"><strong>40 pts</strong> за окраску</div>
+                </div>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('painted', -1)">−</button>
+                    <span class="qty-num" id="painted">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('painted', 1)">+</button>
+                </div>
+            </div>
+
+            <div class="skin-item" id="item-grand_appearance">
+                <div class="skin-left">
+                    <div class="skin-title">Великолепный облик</div>
+                    <div class="skin-sub"><strong>0 pts</strong> • вне коллекции</div>
+                </div>
+                <div class="qty-box">
+                    <button type="button" class="qty-btn" onclick="changeQty('grand_appearance', -1)">−</button>
+                    <span class="qty-num" id="grand_appearance">0</span>
+                    <button type="button" class="qty-btn" onclick="changeQty('grand_appearance', 1)">+</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="dock">
-        <div class="dock-inner">
-            <button type="button" class="submit-btn" onclick="calculate()">Рассчитать стоимость</button>
+    <div class="footer-bar">
+        <div class="footer-inner">
+            <button type="button" class="btn-submit" onclick="sendCalculation()">Получить точный расчёт</button>
         </div>
     </div>
 
@@ -579,11 +593,18 @@
             tg.expand();
         }
 
-        // Сколько рублей стоит 1 000 очков коллекции (198 000 pts * 102.44 / 1000 ≈ 20 283 ₽)
         const PRICE_PER_1000_PTS = 102.44;
-        const BASE_PRICE = 1500;
+        const RANK_VALUES = {
+            none:      { label: "Без ранга", price: 0 },
+            epic:      { label: "Epic", price: 51 },
+            legend:    { label: "Legend", price: 256 },
+            mythic:    { label: "Mythic", price: 768 },
+            honor:     { label: "Mythical Honor", price: 1537 },
+            glory:     { label: "Mythical Glory", price: 5122 },
+            immortal:  { label: "Mythical Immortal", price: 10244 }
+        };
 
-        let counts = {
+        let skins = {
             legendary: 0,
             exquisite_grace: 0,
             exquisite: 0,
@@ -594,25 +615,30 @@
             grand_appearance: 0
         };
 
-        function haptic(type = "light") {
+        function vibrate(kind = "light") {
             try {
                 if (tg && tg.HapticFeedback) {
-                    if (type === "success") {
-                        tg.HapticFeedback.notificationOccurred("success");
-                    } else {
-                        tg.HapticFeedback.impactOccurred(type);
-                    }
+                    if (kind === "success") tg.HapticFeedback.notificationOccurred("success");
+                    else tg.HapticFeedback.impactOccurred(kind);
                 }
             } catch (_) {}
         }
 
-        function clampNum(val, min, max, fallback = 0) {
-            const n = parseFloat(val);
-            if (Number.isNaN(n)) return fallback;
-            return Math.min(max, Math.max(min, n));
+        function clampNum(raw, min, max, fallback = 0) {
+            const num = parseFloat(raw);
+            if (Number.isNaN(num)) return fallback;
+            return Math.min(max, Math.max(min, num));
         }
 
-        function getCleanParams() {
+        function formatInt(num) {
+            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+
+        function formatRub(num) {
+            return formatInt(num) + " ₽";
+        }
+
+        function readForm() {
             const rank = document.getElementById("rank").value;
             const winrate = clampNum(document.getElementById("winrate").value, 0, 100, 0);
             const matches = Math.round(clampNum(document.getElementById("matches").value, 0, 100000, 0));
@@ -620,91 +646,77 @@
             return { rank, winrate, matches, collection_points };
         }
 
-        function updateCount(type, change) {
-            counts[type] = Math.max(0, (counts[type] || 0) + change);
-            document.getElementById(type).innerText = counts[type];
-            const row = document.getElementById("row-" + type);
-            if (row) {
-                row.classList.toggle("active", counts[type] > 0);
-            }
-            haptic("light");
-            renderLivePreview();
+        function calcWinrateBonus(winrate, matches) {
+            if (winrate <= 60 || matches <= 0) return 0;
+            const matchFactor = Math.min(matches / 3000, 1.0);
+            const extraWr = Math.min(winrate - 60, 20);
+            return Math.round(extraWr * 163.8 * matchFactor);
         }
 
-        function onParamChange() {
-            renderLivePreview();
+        function changeQty(key, delta) {
+            skins[key] = Math.max(0, (skins[key] || 0) + delta);
+            document.getElementById(key).innerText = skins[key];
+            const row = document.getElementById("item-" + key);
+            if (row) row.classList.toggle("has-items", skins[key] > 0);
+            vibrate("light");
+            refreshPreview();
         }
 
-        function resetForm() {
+        function resetAll() {
+            document.getElementById("collection_points").value = "0";
             document.getElementById("rank").value = "none";
             document.getElementById("winrate").value = "50";
             document.getElementById("matches").value = "0";
-            document.getElementById("collection_points").value = "0";
-            Object.keys(counts).forEach((key) => {
-                counts[key] = 0;
+            Object.keys(skins).forEach((key) => {
+                skins[key] = 0;
                 document.getElementById(key).innerText = "0";
-                const row = document.getElementById("row-" + key);
-                if (row) row.classList.remove("active");
+                const row = document.getElementById("item-" + key);
+                if (row) row.classList.remove("has-items");
             });
-            haptic("medium");
-            renderLivePreview();
+            vibrate("medium");
+            refreshPreview();
         }
 
-        function formatRub(num) {
-            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " ₽";
-        }
-
-        function formatNum(num) {
-            return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-        }
-
-        function renderLivePreview() {
-            const { rank, winrate, matches, collection_points } = getCleanParams();
-            let total = BASE_PRICE;
-
-            if (rank === "immortal") total += 11500;
-            else if (rank === "glory") total += 5750;
-
-            if (winrate >= 60 && matches >= 1000 && winrate > 60) {
-                total += Math.floor((winrate - 60) * 300);
-            }
-
+        function refreshPreview() {
+            const { rank, winrate, matches, collection_points } = readForm();
+            const rankInfo = RANK_VALUES[rank] || RANK_VALUES.none;
             const collectionRub = Math.round((collection_points / 1000) * PRICE_PER_1000_PTS);
-            total += collectionRub;
+            const wrBonus = calcWinrateBonus(winrate, matches);
+            const total = collectionRub + rankInfo.price + wrBonus;
 
-            document.getElementById("livePrice").innerText = formatRub(total);
-            document.getElementById("skinsSummary").innerText = `Очки: ${formatNum(collection_points)} pts`;
-            document.getElementById("liveBreakdown").innerText =
-                `Коллекция: ${formatRub(collectionRub)} • Винрейт ${winrate}%`;
+            const totalSkins = Object.values(skins).reduce((acc, v) => acc + (v || 0), 0);
+
+            document.getElementById("previewTotal").innerText = formatRub(total);
+            document.getElementById("ptsBadge").innerText = `${formatInt(collection_points)} pts`;
+            document.getElementById("previewMeta").innerText =
+                `Коллекция: ${formatRub(collectionRub)} • Ранг: ${rankInfo.label}`;
+            document.getElementById("skinsCountTag").innerText = `${totalSkins} шт.`;
         }
 
-        function calculate() {
-            const { rank, winrate, matches, collection_points } = getCleanParams();
-            document.getElementById("winrate").value = winrate;
-            document.getElementById("matches").value = matches;
-            document.getElementById("collection_points").value = collection_points;
+        function sendCalculation() {
+            const clean = readForm();
+            document.getElementById("collection_points").value = clean.collection_points;
+            document.getElementById("winrate").value = clean.winrate;
+            document.getElementById("matches").value = clean.matches;
 
             const payload = {
                 action: "calculate_manual",
                 data: {
-                    rank,
-                    winrate,
-                    matches,
-                    collection_points,
-                    skins: { ...counts }
+                    ...clean,
+                    skins: { ...skins }
                 }
             };
 
-            haptic("success");
+            vibrate("success");
 
             if (tg && typeof tg.sendData === "function") {
                 tg.sendData(JSON.stringify(payload));
             } else {
-                alert("Данные готовы для отправки боту:\n" + JSON.stringify(payload, null, 2));
+                alert(JSON.stringify(payload, null, 2));
             }
         }
 
-        renderLivePreview();
+        refreshPreview();
     </script>
 </body>
 </html>
