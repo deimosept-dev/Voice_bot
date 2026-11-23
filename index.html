@@ -115,7 +115,7 @@
         .file-list {
             margin-top: 20px;
             text-align: left;
-            max-height: 150px;
+            max-height: 180px;
             overflow-y: auto;
         }
 
@@ -127,8 +127,22 @@
             font-size: 12px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             border-left: 3px solid var(--neon-blue);
             animation: fadeIn 0.4s ease;
+        }
+
+        .delete-btn {
+            color: #ff4c4c;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 0 5px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .delete-btn:active {
+            transform: scale(1.3);
         }
 
         /* Экран загрузки */
@@ -179,14 +193,12 @@
             animation: pulse 1.5s infinite;
         }
 
-        /* Анимации */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes spinReverse { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* Скроллбар */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(138, 43, 226, 0.5); border-radius: 10px; }
@@ -247,7 +259,11 @@
             filesArray.forEach((file, index) => {
                 const div = document.createElement('div');
                 div.className = 'file-item';
-                div.innerHTML = `<span>🖼 Фото ${index + 1}</span> <span>${(file.size / 1024 / 1024).toFixed(1)} MB</span>`;
+                // Добавляем крестик для удаления
+                div.innerHTML = `
+                    <span>🖼 Фото ${index + 1} (${(file.size / 1024 / 1024).toFixed(1)} MB)</span> 
+                    <span class="delete-btn" onclick="removeFile(${index})">✖</span>
+                `;
                 fileList.appendChild(div);
             });
 
@@ -257,6 +273,12 @@
             } else {
                 calculateBtn.style.display = 'none';
             }
+        }
+
+        // Функция удаления фото
+        function removeFile(index) {
+            filesArray.splice(index, 1); // Удаляем один элемент
+            renderFiles(); // Перерисовываем список
         }
 
         calculateBtn.addEventListener('click', () => {
@@ -283,7 +305,7 @@
                     }));
                     tg.close();
                 }
-            }, 1200); // 4 шага по 1.2 сек = ~5 секунд анимации
+            }, 1000); // Чуть ускорил анимацию (4 секунды)
         });
     </script>
 </body>
