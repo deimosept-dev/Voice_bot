@@ -70,7 +70,6 @@ async def cmd_start(message: Message):
         f"🎁 У тебя осталось {remaining} из 5 бесплатных решений на сегодня."
     )
 
-# Функция для отправки запроса к нейросети
 async def ask_ai(message: Message, text_prompt: str, image_b64: str = None):
     if not can_solve(message.from_user.id):
         await message.answer("😔 На сегодня лимит (5 решений) исчерпан. Возвращайся завтра!")
@@ -83,7 +82,6 @@ async def ask_ai(message: Message, text_prompt: str, image_b64: str = None):
         "Content-Type": "application/json"
     }
     
-    # Формируем сообщение для нейросети
     user_content = []
     if text_prompt:
         user_content.append({"type": "text", "text": text_prompt})
@@ -96,7 +94,10 @@ async def ask_ai(message: Message, text_prompt: str, image_b64: str = None):
     payload = {
         "model": MODEL_NAME,
         "messages": [
-            {"role": "system", "content": "Ты — школьный помощник. Решай задачи по шагам, объясняя простым языком. Если на фото несколько задач, реши первую."},
+            {
+                "role": "system", 
+                "content": "Ты — школьный помощник. Решай задачи по шагам. ВАЖНО: Не используй LaTeX-разметку (никаких $, \\vec, \\cdot, \\frac). Пиши формулы обычным текстом с помощью русских букв и простых символов. Например: a = (3, 6), b = (4, -2), скалярное произведение a*b = 3*4 + 6*(-2) = 0. Если на фото несколько задач, реши первую."
+            },
             {"role": "user", "content": user_content}
         ]
     }
@@ -132,7 +133,6 @@ async def ask_ai(message: Message, text_prompt: str, image_b64: str = None):
         print("AI error:", repr(e))
 
 
-# Обработка текстовых задач
 @dp.message(F.text)
 async def handle_text(message: Message):
     text = message.text.strip()
@@ -140,19 +140,12 @@ async def handle_text(message: Message):
         return
     await ask_ai(message, text_prompt=text)
 
-# Обработка фотографий с задачами
 @dp.message(F.photo)
 async def handle_photo(message: Message):
     await message.answer("📸 Фото получено! Распознаю текст и решаю...")
-    
-    # Скачиваем фото в максимальном качестве
     file_info = await message.bot.get_file(message.photo[-1].file_id)
     downloaded_file = await message.bot.download_file(file_info.file_path)
-    
-    # Переводим картинку в формат base64
     image_b64 = base64.b64encode(downloaded_file.read()).decode('utf-8')
-    
-    # Отправляем в нейросеть
     await ask_ai(message, text_prompt="Реши задачу на этом фото.", image_b64=image_b64)
 
 async def main():
@@ -160,7 +153,7 @@ async def main():
         return
     init_db()
     bot = Bot(BOT_TOKEN)
-    print("🚀 Бот-помощник (с распознаванием фото) запущен!")
+    print("🚀 Бот-помощник с фото запущен!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
