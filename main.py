@@ -1,104 +1,74 @@
 import asyncio
 import os
-import sqlite3
 import httpx
-import base64
-from contextlib import closing
-from datetime import date
+import random
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message
+from aiogram.types import (
+    Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ZVENO_API_KEY = os.getenv("ZVENO_API_KEY")
-DB_PATH = os.getenv("DB_PATH", "bot.db")
 
-# Модель, которая умеет распознавать картинки (VL - Vision Language)
+# Модель ZvenoAI
 MODEL_NAME = "nvidia/nemotron-3.5-super-vl:free"
 
-def db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def init_db():
-    with closing(db()) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY,
-                requests_today INTEGER DEFAULT 0,
-                last_request_date TEXT DEFAULT ''
-            )
-        """)
-        conn.commit()
-
-def can_solve(user_id):
-    today = date.today().isoformat()
-    with closing(db()) as conn:
-        conn.execute("INSERT OR IGNORE INTO users(user_id) VALUES(?)", (user_id,))
-        conn.commit()
-        row = conn.execute("SELECT requests_today, last_request_date FROM users WHERE user_id=?", (user_id,)).fetchone()
-        
-        if row["last_request_date"] != today:
-            conn.execute("UPDATE users SET requests_today=0, last_request_date=? WHERE user_id=?", (today, user_id))
-            conn.commit()
-            return True
-        return row["requests_today"] < 5
-
-def add_request(user_id):
-    with closing(db()) as conn:
-        conn.execute("UPDATE users SET requests_today = requests_today + 1 WHERE user_id=?", (user_id,))
-        conn.commit()
-
-def get_remaining(user_id):
-    today = date.today().isoformat()
-    with closing(db()) as conn:
-        row = conn.execute("SELECT requests_today, last_request_date FROM users WHERE user_id=?", (user_id,)).fetchone()
-        if not row or row["last_request_date"] != today:
-            return 5
-        return max(0, 5 - row["requests_today"])
+def get_main_kb():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔮 Разобрать мой вопрос", callback_data="get_prediction")]
+    ])
 
 dp = Dispatcher()
 
+# Промпты в стиле Олеси Иванченко (Астропсихология + жесткая правда)
+OLESYA_PROMPTS = [
+    "Ты — Олеся Иванченко, астропсихолог. Твой стиль: прямой, дерзкий, с юмором, но очень глубокий. Ты не гладишь по голове, а называешь вещи своими именами. Ты связываешь текущую ситуацию человека с его детскими травмами и ретроградными планетами. Говори как в подкасте: 'Давай по чесноку', 'Ты сама все знаешь'. Дай жесткий, но полезный совет.",
+    
+    "Ты — Олеся Иванченко. Отвечай на вопрос пользователя через призму астрологии (укажи, какие планеты сейчас влияют на ситуацию: Меркурий, Сатурн, Венера) и психологии. Твой тон — как у лучшей подруги, которая отлично разбирается в астрологии и не боится сказать правду в лицо. Запрещено использовать клише про 'карты Таро' и 'магию'. Только психология, астрология и факты.",
+    
+    "Ты — циничный, но невероятно эмпатичный астролог Олеся. Твоя задача — вытащить человека из позиции жертвы. Проанализируй его вопрос, укажи на иллюзии, в которых он живет, и дай инструкцию к действию. В конце задай один неудобный вопрос, над которым человеку придется подумать."
+]
+
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
-    remaining = get_remaining(message.from_user.id)
     await message.answer(
-        "👋 Привет! Я твой умный помощник по домашке.\n\n"
-        "📝 Отправь мне текст задачи или **фотографию** задания, и я решу её по шагам!\n\n"
-        f"🎁 У тебя осталось {remaining} из 5 бесплатных решений на сегодня."
+        "👋 Привет! На связи твой личный астропсихолог.\n\n"
+        "Я не гадаю на кофейной гуще. Я разбираю твою ситуацию с точки зрения астрологии, психологии и здравого смысла. Будет честно, местами жестко, но полезно.\n\n"
+        "🎁 Сейчас бот работает в тестовом режиме (БЕСПЛАТНО).\n"
+        "Напиши свой вопрос или опиши ситуацию, которая тебя беспокоит.",
+        reply_markup=get_main_kb()
     )
 
-async def ask_ai(message: Message, text_prompt: str, image_b64: str = None):
-    if not can_solve(message.from_user.id):
-        await message.answer("😔 На сегодня лимит (5 решений) исчерпан. Возвращайся завтра!")
+@dp.callback_query(F.data == "get_prediction")
+async def cb_get_prediction(cq: CallbackQuery):
+    await cq.message.edit_text(
+        "🔮 Я слушаю. Напиши свой вопрос одним сообщением. Чем честнее опишешь ситуацию, тем точнее будет разбор."
+    )
+    await cq.answer()
+
+@dp.message(F.text)
+async def handle_question(message: Message):
+    text = message.text.strip()
+    if text.startswith("/"): 
         return
 
-    status_msg = await message.answer("🧠 Думаю над решением... Это займет пару секунд.")
+    status_msg = await message.answer("✨ Смотрю твою натальную карту и анализирую ситуацию...")
+
+    # Выбираем случайный стиль
+    system_prompt = random.choice(OLESYA_PROMPTS)
+    system_prompt += " ВАЖНО: Пиши обычным текстом, БЕЗ LaTeX-разметки (никаких $, \\vec). Используй выделение жирным (Markdown) для ключевых мыслей. Ответ должен быть объемом 1500-2000 символов, как пост в телеграм-канале."
 
     headers = {
         "Authorization": f"Bearer {ZVENO_API_KEY}",
         "Content-Type": "application/json"
     }
-    
-    user_content = []
-    if text_prompt:
-        user_content.append({"type": "text", "text": text_prompt})
-    if image_b64:
-        user_content.append({
-            "type": "image_url", 
-            "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}
-        })
-
     payload = {
         "model": MODEL_NAME,
         "messages": [
-            {
-                "role": "system", 
-                "content": "Ты — школьный помощник. Решай задачи по шагам. ВАЖНО: Не используй LaTeX-разметку (никаких $, \\vec, \\cdot, \\frac). Пиши формулы обычным текстом с помощью русских букв и простых символов. Например: a = (3, 6), b = (4, -2), скалярное произведение a*b = 3*4 + 6*(-2) = 0. Если на фото несколько задач, реши первую."
-            },
-            {"role": "user", "content": user_content}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Вопрос клиента: {text}"}
         ]
     }
 
@@ -109,51 +79,27 @@ async def ask_ai(message: Message, text_prompt: str, image_b64: str = None):
                 headers=headers,
                 json=payload
             )
-        
-        if response.status_code != 200:
-            raise Exception(f"Код {response.status_code}: {response.text}")
+        response.raise_for_status()
+        answer = response.json()["choices"][0]["message"]["content"]
 
-        result = response.json()
-        answer = result["choices"][0]["message"]["content"]
-
+        # Разбиваем, если ответ слишком длинный
         if len(answer) > 4000:
             for i in range(0, len(answer), 4000):
-                await message.answer(answer[i:i+4000])
+                await message.answer(answer[i:i+4000], reply_markup=get_main_kb() if i+4000 >= len(answer) else None)
         else:
-            await message.answer(answer)
-
-        add_request(message.from_user.id)
-        remaining = get_remaining(message.from_user.id)
-        await message.answer(f"📊 Осталось решений на сегодня: {remaining}/5")
+            await message.answer(answer, reply_markup=get_main_kb())
+            
         await status_msg.delete()
 
     except Exception as e:
-        error_text = str(e)
-        await status_msg.edit_text(f"❌ Ошибка API:\n{error_text[:400]}")
         print("AI error:", repr(e))
-
-
-@dp.message(F.text)
-async def handle_text(message: Message):
-    text = message.text.strip()
-    if text.startswith("/"):
-        return
-    await ask_ai(message, text_prompt=text)
-
-@dp.message(F.photo)
-async def handle_photo(message: Message):
-    await message.answer("📸 Фото получено! Распознаю текст и решаю...")
-    file_info = await message.bot.get_file(message.photo[-1].file_id)
-    downloaded_file = await message.bot.download_file(file_info.file_path)
-    image_b64 = base64.b64encode(downloaded_file.read()).decode('utf-8')
-    await ask_ai(message, text_prompt="Реши задачу на этом фото.", image_b64=image_b64)
+        await status_msg.edit_text("❌ Планеты сегодня не на связи. Попробуй позже.")
 
 async def main():
     if not BOT_TOKEN or not ZVENO_API_KEY:
         return
-    init_db()
     bot = Bot(BOT_TOKEN)
-    print("🚀 Бот-помощник с фото запущен!")
+    print("🚀 Астропсихолог запущен!")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
