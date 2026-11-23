@@ -13,8 +13,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 ZVENO_API_KEY = os.getenv("ZVENO_API_KEY")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
 
-# Бесплатная модель ZvenoAI (Llama 3.3 70B - очень умная)
-MODEL_NAME = "meta-llama/llama-3.3-70b-instruct:free"
+MODEL_NAME = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
 def db():
     conn = sqlite3.connect(DB_PATH)
