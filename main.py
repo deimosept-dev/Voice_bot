@@ -1,201 +1,104 @@
 import asyncio
-import base64
-import hashlib
-import hmac
-import json
-import logging
 import os
-import time
-from pathlib import Path
-from urllib.parse import parse_qsl
+import sqlite3
+import json
+from contextlib import closing
+from datetime import datetime
 
-import httpx
-from aiohttp import web
-from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, WebAppInfo
-
-from pricing import ACCESS, RANKS, SKIN_TIERS, calculate
-
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("mlbb")
-
-BOT_TOKEN = os.environ["BOT_TOKEN"]
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
-WEBAPP_URL = os.environ.get("WEBAPP_URL", "")
-MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
-PORT = int(os.environ.get("PORT", "8080"))
-HOURLY_LIMIT = int(os.environ.get("HOURLY_LIMIT", "5"))
-MAX_PHOTOS = 10
-
-BASE_DIR = Path(__file__).parent
-usage = {}
-
-TOOL = {
-    "name": "report_account",
-    "description": "Сообщить данные аккаунта Mobile Legends, найденные на скриншотах.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "skins": {
-                "type": "object",
-                "description": "Количество скинов по тирам. Только то, что видно на скринах.",
-                "properties": {k: {"type": "integer"} for k in SKIN_TIERS},
-            },
-            "collection_points": {"type": ["integer", "null"]},
-            "highest_rank": {"type": "string", "enum": list(RANKS) + ["unknown"]},
-            "current_rank": {"type": ["string", "null"]},
-            "win_rate": {"type": ["number", "null"]},
-            "ranked_matches": {"type": ["integer", "null"]},
-            "heroes_owned": {"type": ["integer", "null"]},
-            "maxed_emblems": {"type": ["integer", "null"]},
-            "diamonds": {"type": ["integer", "null"]},
-            "notes": {
-                "type": "string",
-                "description": "По-русски: что не удалось определить и каких скриншотов не хватает.",
-            },
-        },
-        "required": ["skins", "highest_rank", "notes"],
-    },
-}
-
-PROMPT = (
-    "Это скриншоты аккаунта Mobile Legends: Bang Bang. Найди на них данные и вызови report_account.\n"
-    "Тиры скинов: Supreme (Legend), Grand (Collab/Aspirants), Exquisite (Collector/Lucky Box), "
-    "Deluxe (Epic/Zodiac/Lightborn), Exceptional (Special/Starlight), Common (Basic/Elite/Season), Painted.\n"
-    "Правила: считай только то, что реально видно. Ничего не додумывай. Если данных нет, ставь null "
-    "(для скинов 0, для ранга unknown) и напиши в notes, чего не хватает. "
-    "Если один и тот же экран есть на нескольких скринах, не считай дважды."
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import CommandStart, Command
+from aiogram.types import (
+    Message, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 )
 
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+DB_PATH = os.getenv("DB_PATH", "bot.db")
+WEBAPP_URL = "https://deimosept-dev.github.io/Voice_bot/"
 
-def check_init_data(init_data):
-    """Проверка подписи Telegram, чтобы чужие не тратили ваш ключ ИИ."""
-    parsed = dict(parse_qsl(init_data, keep_blank_values=True))
-    received = parsed.pop("hash", None)
-    if not received:
-        return None
-    check = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
-    secret = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
-    calc = hmac.new(secret, check.encode(), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(calc, received):
-        return None
-    try:
-        return json.loads(parsed.get("user", "{}")).get("id")
-    except ValueError:
-        return None
+# Твой ID вписан сюда
+ADMIN_ID = 1636139244 
 
+def db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-def rate_limited(user_id):
-    now = time.time()
-    recent = [t for t in usage.get(user_id, []) if now - t < 3600]
-    if len(recent) >= HOURLY_LIMIT:
-        usage[user_id] = recent
-        return True
-    recent.append(now)
-    usage[user_id] = recent
-    return False
+def init_db():
+    with closing(db()) as conn:
+        conn.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY)")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                action TEXT,
+                created_at TEXT
+            )
+        """)
+        conn.commit()
 
-
-async def extract_from_images(images):
-    content = []
-    for media_type, raw in images:
-        if media_type not in ("image/jpeg", "image/png", "image/webp", "image/gif"):
-            media_type = "image/jpeg"
-        content.append({
-            "type": "image",
-            "source": {"type": "base64", "media_type": media_type,
-                       "data": base64.b64encode(raw).decode()},
-        })
-    content.append({"type": "text", "text": PROMPT})
-
-    async with httpx.AsyncClient(timeout=120) as client:
-        r = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": MODEL,
-                "max_tokens": 1500,
-                "tools": [TOOL],
-                "tool_choice": {"type": "tool", "name": "report_account"},
-                "messages": [{"role": "user", "content": content}],
-            },
-        )
-    if r.status_code != 200:
-        log.error("Anthropic %s: %s", r.status_code, r.text[:500])
-        raise RuntimeError("Сервис распознавания временно недоступен")
-    for block in r.json().get("content", []):
-        if block.get("type") == "tool_use":
-            return block["input"]
-    raise RuntimeError("Не удалось разобрать скриншоты")
-
-
-async def valuate(request):
-    try:
-        form = await request.post()
-        user_id = check_init_data(form.get("init_data", ""))
-        if user_id is None:
-            return web.json_response({"ok": False, "error": "Откройте приложение через Telegram"}, status=403)
-        if rate_limited(user_id):
-            return web.json_response({"ok": False, "error": f"Лимит {HOURLY_LIMIT} оценок в час. Попробуйте позже."}, status=429)
-
-        images = []
-        for f in form.getall("photos", [])[:MAX_PHOTOS]:
-            if hasattr(f, "file"):
-                images.append((f.content_type, f.file.read()))
-        if not images:
-            return web.json_response({"ok": False, "error": "Нет фото"}, status=400)
-
-        access = form.get("access", "safe")
-        if access not in ACCESS:
-            access = "safe"
-        data = await extract_from_images(images)
-        return web.json_response({"ok": True, "extracted": data, "result": calculate(data, access)})
-    except Exception as e:
-        log.exception("valuate failed")
-        return web.json_response({"ok": False, "error": str(e) or "Ошибка сервера"}, status=500)
-
-
-async def index(request):
-    return web.FileResponse(BASE_DIR / "index.html")
-
-
-async def health(request):
-    return web.Response(text="ok")
-
+def log_action(user_id, action):
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with closing(db()) as conn:
+        conn.execute("INSERT INTO users(user_id) VALUES(?) ON CONFLICT DO NOTHING", (user_id,))
+        conn.execute("INSERT INTO stats(user_id, action, created_at) VALUES(?, ?, ?)", (user_id, action, now))
+        conn.commit()
 
 dp = Dispatcher()
 
-
 @dp.message(CommandStart())
-async def start(message: Message):
-    kb = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="📸 Оценить аккаунт", web_app=WebAppInfo(url=WEBAPP_URL))
-    ]])
+async def cmd_start(message: Message):
+    log_action(message.from_user.id, "start")
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚀 Открыть калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))]
+    ])
+    
     await message.answer(
-        "Привет! Я оценю твой аккаунт MLBB по скриншотам.\n"
-        "Нажми кнопку и загрузи скрины профиля, коллекции скинов, героев и эмблем.\n\n"
-        "⚠️ Оценка примерная. Покупка и продажа аккаунтов нарушает правила Moonton.",
-        reply_markup=kb,
+        "👋 Привет! Это автоматический оценщик аккаунтов Mobile Legends.\n\n"
+        "Загрузи скриншоты своего профиля, и я посчитаю, за сколько его можно продать.",
+        reply_markup=kb
     )
 
+@dp.message(F.web_app_data)
+async def handle_webapp(message: Message):
+    try:
+        data = json.loads(message.web_app_data.data)
+        if data.get("action") == "calculate":
+            files_count = data.get("files_count", 0)
+            log_action(message.from_user.id, f"calculate_click_{files_count}")
+            
+            await message.answer(
+                f"✅ Ты загрузил {files_count} фото в калькулятор!\n\n"
+                "**Отправь эти фотографии прямо сюда в чат** (можно альбомом).\n"
+                "Я распознаю скины, ранг и винрейт, а затем пришлю итоговую стоимость."
+            )
+    except Exception as e:
+        print("WebApp error:", e)
+
+@dp.message(Command("admin"))
+async def cmd_admin(message: Message):
+    if message.from_user.id != ADMIN_ID:
+        return
+        
+    with closing(db()) as conn:
+        total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        total_starts = conn.execute("SELECT COUNT(*) FROM stats WHERE action='start'").fetchone()[0]
+        total_calcs = conn.execute("SELECT COUNT(*) FROM stats WHERE action LIKE 'calculate%'").fetchone()[0]
+        
+    await message.answer(
+        f"📊 **Статистика бота:**\n\n"
+        f"👥 Всего пользователей: {total_users}\n"
+        f"🚀 Запустили бота: {total_starts}\n"
+        f"💰 Нажали 'Рассчитать': {total_calcs}"
+    )
 
 async def main():
-    app = web.Application(client_max_size=40 * 1024 * 1024)
-    app.add_routes([web.get("/", index), web.get("/health", health), web.post("/api/valuate", valuate)])
-    runner = web.AppRunner(app)
-    await runner.setup()
-    await web.TCPSite(runner, "0.0.0.0", PORT).start()
-    log.info("Web server on port %s", PORT)
-
+    if not BOT_TOKEN:
+        return
+    init_db()
     bot = Bot(BOT_TOKEN)
-    await bot.delete_webhook(drop_pending_updates=True)
+    print("🚀 Бот запущен!")
     await dp.start_polling(bot)
-
 
 if __name__ == "__main__":
     asyncio.run(main())
