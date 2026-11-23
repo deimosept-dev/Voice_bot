@@ -116,7 +116,6 @@
             color: var(--muted);
         }
 
-        /* Главный экран оценки */
         .score-panel {
             position: relative;
             overflow: hidden;
@@ -201,7 +200,6 @@
             color: var(--muted);
         }
 
-        /* Блоки параметров */
         .box {
             background: var(--surface);
             backdrop-filter: blur(12px);
@@ -294,7 +292,7 @@
         }
 
         input[type="number"] {
-            padding: 0 10px;
+            padding: 0 8px;
             text-align: center;
         }
 
@@ -303,7 +301,6 @@
             box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
         }
 
-        /* Список обликов */
         .skin-item {
             display: flex;
             align-items: center;
@@ -352,7 +349,7 @@
         .qty-box {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
             padding: 3px;
             border-radius: 11px;
             background: rgba(8, 8, 13, 0.72);
@@ -360,7 +357,7 @@
         }
 
         .qty-btn {
-            width: 30px;
+            width: 28px;
             height: 30px;
             border-radius: 8px;
             border: none;
@@ -381,15 +378,25 @@
             background: var(--crimson);
         }
 
-        .qty-num {
-            min-width: 28px;
-            text-align: center;
-            font-size: 13.5px;
-            font-weight: 800;
+        .qty-input {
+            width: 46px !important;
+            height: 30px !important;
+            border-radius: 8px !important;
+            border: 1px solid transparent !important;
+            background: transparent !important;
+            padding: 0 2px !important;
+            font-size: 13.5px !important;
+            font-weight: 800 !important;
             color: var(--ink);
+            text-align: center;
         }
 
-        /* Нижняя панель действия */
+        .qty-input:focus {
+            border-color: rgba(225, 29, 72, 0.5) !important;
+            background: rgba(255, 255, 255, 0.05) !important;
+            box-shadow: none !important;
+        }
+
         .footer-bar {
             position: fixed;
             left: 0;
@@ -437,7 +444,7 @@
         </div>
 
         <h1 class="heading">Оценка аккаунта <span>MLBB</span></h1>
-        <p class="lead">Введите очки коллекции, ранг и статистику — бот пришлёт подробный расчёт в чат.</p>
+        <p class="lead">Введите очки коллекции, ранг и облики — бот пришлёт подробный расчёт в чат.</p>
 
         <div class="score-panel">
             <div class="score-top">
@@ -460,7 +467,7 @@
             <div class="row-field">
                 <div class="field-text">
                     <label class="field-title" for="collection_points">Очки коллекции</label>
-                    <span class="field-desc">Общее число очков из профиля (например, 198000)</span>
+                    <span class="field-desc">Общее число очков из профиля (или 0 — тогда посчитаем по обликам)</span>
                 </div>
                 <div class="field-input-wrap">
                     <input type="number" id="collection_points" value="0" min="0" max="5000000" step="100" oninput="refreshPreview()" onchange="refreshPreview()" onblur="refreshPreview()">
@@ -515,11 +522,11 @@
             <div class="skin-item" id="item-legendary">
                 <div class="skin-left">
                     <div class="skin-title">Легендарные</div>
-                    <div class="skin-sub"><strong>4 000 pts</strong> за облик</div>
+                    <div class="skin-sub"><strong>4 000 pts</strong> • +410 ₽ / шт.</div>
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('legendary', -1)">−</button>
-                    <span class="qty-num" id="legendary">0</span>
+                    <input type="number" class="qty-input" id="legendary" value="0" min="0" max="9999" step="1" oninput="onSkinInput('legendary')" onchange="onSkinBlur('legendary')" onblur="onSkinBlur('legendary')">
                     <button type="button" class="qty-btn" onclick="changeQty('legendary', 1)">+</button>
                 </div>
             </div>
@@ -527,11 +534,11 @@
             <div class="skin-item" id="item-exquisite_grace">
                 <div class="skin-left">
                     <div class="skin-title">Изящные</div>
-                    <div class="skin-sub"><strong>3 000 pts</strong> за облик</div>
+                    <div class="skin-sub"><strong>3 000 pts</strong> • +307 ₽ / шт.</div>
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('exquisite_grace', -1)">−</button>
-                    <span class="qty-num" id="exquisite_grace">0</span>
+                    <input type="number" class="qty-input" id="exquisite_grace" value="0" min="0" max="9999" step="1" oninput="onSkinInput('exquisite_grace')" onchange="onSkinBlur('exquisite_grace')" onblur="onSkinBlur('exquisite_grace')">
                     <button type="button" class="qty-btn" onclick="changeQty('exquisite_grace', 1)">+</button>
                 </div>
             </div>
@@ -539,11 +546,11 @@
             <div class="skin-item" id="item-exquisite">
                 <div class="skin-left">
                     <div class="skin-title">Изысканные</div>
-                    <div class="skin-sub"><strong>2 000 pts</strong> за облик</div>
+                    <div class="skin-sub"><strong>2 000 pts</strong> • +205 ₽ / шт.</div>
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('exquisite', -1)">−</button>
-                    <span class="qty-num" id="exquisite">0</span>
+                    <input type="number" class="qty-input" id="exquisite" value="0" min="0" max="9999" step="1" oninput="onSkinInput('exquisite')" onchange="onSkinBlur('exquisite')" onblur="onSkinBlur('exquisite')">
                     <button type="button" class="qty-btn" onclick="changeQty('exquisite', 1)">+</button>
                 </div>
             </div>
@@ -551,11 +558,11 @@
             <div class="skin-item" id="item-deluxe">
                 <div class="skin-left">
                     <div class="skin-title">Роскошные</div>
-                    <div class="skin-sub"><strong>400 pts</strong> за облик</div>
+                    <div class="skin-sub"><strong>400 pts</strong> • +41 ₽ / шт.</div>
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('deluxe', -1)">−</button>
-                    <span class="qty-num" id="deluxe">0</span>
+                    <input type="number" class="qty-input" id="deluxe" value="0" min="0" max="9999" step="1" oninput="onSkinInput('deluxe')" onchange="onSkinBlur('deluxe')" onblur="onSkinBlur('deluxe')">
                     <button type="button" class="qty-btn" onclick="changeQty('deluxe', 1)">+</button>
                 </div>
             </div>
@@ -563,11 +570,11 @@
             <div class="skin-item" id="item-exceptional">
                 <div class="skin-left">
                     <div class="skin-title">Исключительные</div>
-                    <div class="skin-sub"><strong>200 pts</strong> за облик</div>
+                    <div class="skin-sub"><strong>200 pts</strong> • +20 ₽ / шт.</div>
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('exceptional', -1)">−</button>
-                    <span class="qty-num" id="exceptional">0</span>
+                    <input type="number" class="qty-input" id="exceptional" value="0" min="0" max="9999" step="1" oninput="onSkinInput('exceptional')" onchange="onSkinBlur('exceptional')" onblur="onSkinBlur('exceptional')">
                     <button type="button" class="qty-btn" onclick="changeQty('exceptional', 1)">+</button>
                 </div>
             </div>
@@ -575,11 +582,11 @@
             <div class="skin-item" id="item-common">
                 <div class="skin-left">
                     <div class="skin-title">Обычные</div>
-                    <div class="skin-sub"><strong>100 pts</strong> за облик</div>
+                    <div class="skin-sub"><strong>100 pts</strong> • +10 ₽ / шт.</div>
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('common', -1)">−</button>
-                    <span class="qty-num" id="common">0</span>
+                    <input type="number" class="qty-input" id="common" value="0" min="0" max="9999" step="1" oninput="onSkinInput('common')" onchange="onSkinBlur('common')" onblur="onSkinBlur('common')">
                     <button type="button" class="qty-btn" onclick="changeQty('common', 1)">+</button>
                 </div>
             </div>
@@ -587,11 +594,11 @@
             <div class="skin-item" id="item-painted">
                 <div class="skin-left">
                     <div class="skin-title">Окраски для обликов</div>
-                    <div class="skin-sub"><strong>40 pts</strong> за окраску</div>
+                    <div class="skin-sub"><strong>40 pts</strong> • +4 ₽ / шт.</div>
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('painted', -1)">−</button>
-                    <span class="qty-num" id="painted">0</span>
+                    <input type="number" class="qty-input" id="painted" value="0" min="0" max="9999" step="1" oninput="onSkinInput('painted')" onchange="onSkinBlur('painted')" onblur="onSkinBlur('painted')">
                     <button type="button" class="qty-btn" onclick="changeQty('painted', 1)">+</button>
                 </div>
             </div>
@@ -603,7 +610,7 @@
                 </div>
                 <div class="qty-box">
                     <button type="button" class="qty-btn" onclick="changeQty('grand_appearance', -1)">−</button>
-                    <span class="qty-num" id="grand_appearance">0</span>
+                    <input type="number" class="qty-input" id="grand_appearance" value="0" min="0" max="9999" step="1" oninput="onSkinInput('grand_appearance')" onchange="onSkinBlur('grand_appearance')" onblur="onSkinBlur('grand_appearance')">
                     <button type="button" class="qty-btn" onclick="changeQty('grand_appearance', 1)">+</button>
                 </div>
             </div>
@@ -637,6 +644,17 @@
             honor:     { label: "Mythical Honor", price: 1537 },
             glory:     { label: "Mythical Glory", price: 5122 },
             immortal:  { label: "Mythical Immortal", price: 10244 }
+        };
+
+        const SKIN_META = {
+            legendary:        { pts: 4000, price: 410, countInTotal: true },
+            exquisite_grace:  { pts: 3000, price: 307, countInTotal: true },
+            exquisite:        { pts: 2000, price: 205, countInTotal: true },
+            deluxe:           { pts: 400,  price: 41,  countInTotal: true },
+            exceptional:      { pts: 200,  price: 20,  countInTotal: true },
+            common:           { pts: 100,  price: 10,  countInTotal: true },
+            painted:          { pts: 40,   price: 4,   countInTotal: true },
+            grand_appearance: { pts: 0,    price: 0,   countInTotal: false }
         };
 
         let skins = {
@@ -674,6 +692,39 @@
             return formatInt(num) + " ₽";
         }
 
+        function syncSkinRowState(key) {
+            const val = skins[key] || 0;
+            const row = document.getElementById("item-" + key);
+            if (row) row.classList.toggle("has-items", val > 0);
+        }
+
+        function changeQty(key, delta) {
+            const next = Math.max(0, Math.min(9999, (skins[key] || 0) + delta));
+            skins[key] = next;
+            const input = document.getElementById(key);
+            if (input) input.value = next;
+            syncSkinRowState(key);
+            vibrate("light");
+            refreshPreview();
+        }
+
+        function onSkinInput(key) {
+            const input = document.getElementById(key);
+            const raw = input ? input.value : "0";
+            skins[key] = raw === "" ? 0 : Math.round(clampNum(raw, 0, 9999, 0));
+            syncSkinRowState(key);
+            refreshPreview();
+        }
+
+        function onSkinBlur(key) {
+            const input = document.getElementById(key);
+            const cleanVal = Math.round(clampNum(input ? input.value : 0, 0, 9999, 0));
+            skins[key] = cleanVal;
+            if (input) input.value = cleanVal;
+            syncSkinRowState(key);
+            refreshPreview();
+        }
+
         function readForm() {
             const rank = document.getElementById("rank").value;
             const winrate = clampNum(document.getElementById("winrate").value, 0, 100, 0);
@@ -689,13 +740,23 @@
             return Math.round(extraWr * WINRATE_RUB_PER_PCT * matchFactor);
         }
 
-        function changeQty(key, delta) {
-            skins[key] = Math.max(0, (skins[key] || 0) + delta);
-            document.getElementById(key).innerText = skins[key];
-            const row = document.getElementById("item-" + key);
-            if (row) row.classList.toggle("has-items", skins[key] > 0);
-            vibrate("light");
-            refreshPreview();
+        function calcCollectionSummary(manualPoints) {
+            let skinsPts = 0;
+            let skinsRub = 0;
+            let totalSkinsCount = 0;
+
+            Object.entries(SKIN_META).forEach(([key, cfg]) => {
+                const cnt = skins[key] || 0;
+                if (cfg.countInTotal) totalSkinsCount += cnt;
+                skinsPts += cnt * cfg.pts;
+                skinsRub += cnt * cfg.price;
+            });
+
+            const manualRub = Math.round((manualPoints / 1000) * PRICE_PER_1000_PTS);
+            const effectivePts = Math.max(manualPoints, skinsPts);
+            const collectionRub = Math.max(manualRub, skinsRub);
+
+            return { effectivePts, collectionRub, totalSkinsCount };
         }
 
         function resetAll() {
@@ -705,9 +766,9 @@
             document.getElementById("matches").value = "0";
             Object.keys(skins).forEach((key) => {
                 skins[key] = 0;
-                document.getElementById(key).innerText = "0";
-                const row = document.getElementById("item-" + key);
-                if (row) row.classList.remove("has-items");
+                const input = document.getElementById(key);
+                if (input) input.value = "0";
+                syncSkinRowState(key);
             });
             vibrate("medium");
             refreshPreview();
@@ -716,19 +777,17 @@
         function refreshPreview() {
             const { rank, winrate, matches, collection_points } = readForm();
             const rankInfo = RANK_VALUES[rank] || RANK_VALUES.none;
-            const collectionRub = Math.round((collection_points / 1000) * PRICE_PER_1000_PTS);
+            const { effectivePts, collectionRub, totalSkinsCount } = calcCollectionSummary(collection_points);
             const wrBonus = calcWinrateBonus(winrate, matches);
             const total = collectionRub + rankInfo.price + wrBonus;
             const quickSale = Math.round(total * QUICK_SALE_FACTOR);
 
-            const totalSkins = Object.values(skins).reduce((acc, v) => acc + (v || 0), 0);
-
             document.getElementById("previewTotal").innerText = formatRub(total);
             document.getElementById("previewQuick").innerText = formatRub(quickSale);
-            document.getElementById("ptsBadge").innerText = `${formatInt(collection_points)} pts`;
+            document.getElementById("ptsBadge").innerText = `${formatInt(effectivePts)} pts`;
             document.getElementById("previewMeta").innerText =
                 `Коллекция: ${formatRub(collectionRub)} • Винрейт: ${formatRub(wrBonus)}`;
-            document.getElementById("skinsCountTag").innerText = `${totalSkins} шт.`;
+            document.getElementById("skinsCountTag").innerText = `${totalSkinsCount} шт.`;
         }
 
         function sendCalculation() {
@@ -736,6 +795,13 @@
             document.getElementById("collection_points").value = clean.collection_points;
             document.getElementById("winrate").value = clean.winrate;
             document.getElementById("matches").value = clean.matches;
+
+            Object.keys(skins).forEach((key) => {
+                const input = document.getElementById(key);
+                const val = Math.round(clampNum(input ? input.value : skins[key], 0, 9999, 0));
+                skins[key] = val;
+                if (input) input.value = val;
+            });
 
             const payload = {
                 action: "calculate_manual",
