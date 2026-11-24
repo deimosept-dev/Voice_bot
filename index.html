@@ -6,8 +6,6 @@
   <title>Оценка Аккаунта</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
     :root {
       --bg-base: #09080c;
       --bg-top: #150b12;
@@ -30,7 +28,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
@@ -46,29 +44,13 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .wrap {
-      max-width: 480px;
-      margin: 0 auto;
-    }
+    .wrap { max-width: 480px; margin: 0 auto; }
 
-    .header {
-      text-align: center;
-      margin-bottom: 14px;
-    }
+    .header { text-align: center; margin-bottom: 14px; }
+    .header h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
+    .header p { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
 
-    .header h1 {
-      font-size: 21px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      color: var(--text);
-    }
-
-    .header p {
-      margin-top: 4px;
-      font-size: 12.5px;
-      color: var(--muted);
-    }
-
+    /* ---------- Цена ---------- */
     .price-box {
       position: sticky;
       top: 8px;
@@ -78,81 +60,41 @@
       border-radius: 22px;
       padding: 14px;
       margin-bottom: 14px;
-      box-shadow:
-        0 14px 32px rgba(0, 0, 0, 0.52),
-        0 0 26px var(--crimson-glow),
-        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      box-shadow: 0 14px 32px rgba(0, 0, 0, 0.52), 0 0 26px var(--crimson-glow), inset 0 1px 0 rgba(255, 255, 255, 0.07);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
     }
-
-    .price-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
+    .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .price-item {
       background: rgba(10, 8, 12, 0.72);
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 11px 12px;
     }
-
     .price-label {
-      font-size: 10.5px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--muted);
     }
-
-    .price-value {
-      margin-top: 4px;
-      font-size: 23px;
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      color: #ffffff;
-    }
-
-    .price-value.fast {
-      margin-top: 2px;
-      font-size: 20px;
-      color: var(--gold);
-    }
-
-    .price-sub {
-      font-size: 11px;
-      font-weight: 600;
-      color: rgba(251, 191, 36, 0.85);
-    }
+    .price-value { margin-top: 4px; font-size: 23px; font-weight: 900; letter-spacing: -0.02em; color: #fff; }
+    .price-value.fast { margin-top: 2px; font-size: 20px; color: var(--gold); }
+    .price-sub { font-size: 11px; font-weight: 600; color: rgba(251, 191, 36, 0.85); }
+    .range-line { margin-top: 9px; font-size: 11.5px; color: var(--muted); text-align: center; }
+    .range-line strong { color: #fda4af; font-weight: 700; }
 
     .tier-badge {
-      margin-top: 10px;
-      padding-top: 9px;
+      margin-top: 9px; padding-top: 9px;
       border-top: 1px solid rgba(255, 255, 255, 0.07);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: var(--muted);
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted);
     }
-
-    .tier-badge span strong {
-      color: #fda4af;
-      font-weight: 700;
-    }
-
+    .tier-badge span strong { color: #fda4af; font-weight: 700; }
     #segmentLabel {
-      padding: 4px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--emerald);
-      background: rgba(52, 211, 153, 0.12);
-      border: 1px solid rgba(52, 211, 153, 0.24);
+      padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700;
+      color: var(--emerald); background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.24); white-space: nowrap;
     }
 
+    /* ---------- Карточки ---------- */
     .card {
       background: linear-gradient(180deg, var(--card-bg) 0%, var(--card-bg-2) 100%);
       border: 1px solid var(--line);
@@ -161,287 +103,142 @@
       margin-bottom: 14px;
       box-shadow: 0 12px 26px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
-
     .card-title {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 12px;
-      font-size: 12px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: #ffffff;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin-bottom: 12px; font-size: 12px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.07em; color: #fff;
     }
+    .card-title small { font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #fda4af; }
 
-    .card-title small {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: none;
-      letter-spacing: 0;
-      color: #fda4af;
-    }
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; margin-bottom: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
 
-    .field {
-      margin-bottom: 12px;
-    }
-
-    .field:last-child {
-      margin-bottom: 0;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--muted);
-    }
-
-    input[type="number"],
-    select {
-      width: 100%;
-      height: 42px;
-      border-radius: 14px;
+    input[type="number"], select {
+      width: 100%; height: 42px; border-radius: 14px;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      background: var(--field-bg);
-      color: var(--text);
-      padding: 0 12px;
-      font-size: 14.5px;
-      font-weight: 600;
-      outline: none;
+      background: var(--field-bg); color: var(--text);
+      padding: 0 12px; font-size: 16px; font-weight: 600; outline: none;
       transition: border-color 0.16s ease, box-shadow 0.16s ease;
     }
-
-    input[type="number"]::placeholder {
-      color: rgba(155, 149, 166, 0.55);
-      font-weight: 500;
-    }
-
-    input[type="number"]:focus,
-    select:focus {
+    input[type="number"]::placeholder { color: rgba(155, 149, 166, 0.55); font-weight: 500; }
+    input[type="number"]:focus, select:focus {
       border-color: var(--crimson-bright);
       box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
     }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    .row-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    /* ---------- Звание коллекции (только текст и шкала) ---------- */
+    .coll-box {
+      padding: 12px 14px; margin-bottom: 12px; border-radius: 18px;
+      background: rgba(11, 8, 13, 0.78); border: 1px solid var(--line);
+      transition: border-color 0.3s ease;
     }
+    .coll-name { font-size: 15px; font-weight: 800; line-height: 1.25; transition: color 0.25s ease; }
+    .coll-sub { margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+    .coll-bar { margin-top: 8px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+    .coll-bar-fill { height: 100%; width: 0; border-radius: 999px; transition: width 0.45s ease, background 0.3s ease; }
 
+    .tier-dots { display: flex; justify-content: space-between; gap: 4px; margin: -4px 0 12px; }
+    .tier-dot { flex: 1; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); transition: background 0.3s ease; }
+
+    /* ---------- Облики ---------- */
     .skin-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      padding: 11px 10px;
-      margin: 0 -4px;
-      border-radius: 16px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 11px 10px; margin: 0 -4px; border-radius: 16px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       transition: background 0.16s ease;
     }
-
-    .skin-row.active-row {
-      background: rgba(190, 24, 93, 0.11);
-    }
-
-    .skin-row:last-child {
-      border-bottom: none;
-    }
-
-    .skin-info {
-      max-width: 63%;
-    }
-
-    .skin-name {
-      font-size: 14px;
-      font-weight: 700;
-      color: #ffffff;
-      line-height: 1.28;
-    }
-
-    .skin-sub {
-      margin-top: 3px;
-      font-size: 11.5px;
-      color: var(--muted);
-    }
-
-    .skin-sub strong {
-      color: var(--ice);
-      font-weight: 600;
-    }
+    .skin-row.active-row { background: rgba(190, 24, 93, 0.11); }
+    .skin-row:last-child { border-bottom: none; }
+    .skin-info { max-width: 63%; }
+    .skin-name { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.28; }
+    .skin-sub { margin-top: 3px; font-size: 11.5px; color: var(--muted); }
+    .skin-sub strong { color: var(--ice); font-weight: 600; }
 
     .counter {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px;
-      border-radius: 14px;
-      background: rgba(11, 8, 13, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.09);
+      display: flex; align-items: center; gap: 5px; padding: 4px; border-radius: 14px;
+      background: rgba(11, 8, 13, 0.82); border: 1px solid rgba(255, 255, 255, 0.09);
     }
-
     .counter button {
-      width: 30px;
-      height: 30px;
-      border-radius: 10px;
-      border: none;
-      background: rgba(255, 255, 255, 0.08);
-      color: #ffffff;
-      font-size: 17px;
-      font-weight: 700;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      width: 30px; height: 30px; border-radius: 10px; border: none;
+      background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 17px; font-weight: 700;
+      cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
       transition: transform 0.12s ease, background 0.15s ease;
     }
-
-    .counter button:active {
-      transform: scale(0.92);
-      background: var(--crimson);
-    }
-
+    .counter button:active { transform: scale(0.92); background: var(--crimson); }
     .counter input {
-      width: 44px !important;
-      height: 30px !important;
-      padding: 0 2px !important;
-      border: none !important;
-      background: transparent !important;
-      box-shadow: none !important;
-      text-align: center;
-      font-size: 14px !important;
-      font-weight: 800 !important;
+      width: 44px !important; height: 30px !important; padding: 0 2px !important;
+      border: none !important; background: transparent !important; box-shadow: none !important;
+      text-align: center; font-size: 14px !important; font-weight: 800 !important;
     }
 
+    /* ---------- Чекбоксы ---------- */
     .check-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 11px;
-      padding: 11px 12px;
-      background: rgba(11, 8, 13, 0.78);
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      margin-bottom: 9px;
-      cursor: pointer;
-      user-select: none;
+      display: flex; align-items: flex-start; gap: 11px; padding: 11px 12px;
+      background: rgba(11, 8, 13, 0.78); border: 1px solid var(--line);
+      border-radius: 16px; margin-bottom: 9px; cursor: pointer; user-select: none;
       transition: border-color 0.16s ease, background 0.16s ease;
     }
-
-    .check-item:last-child {
-      margin-bottom: 0;
-    }
-
-    .check-item:has(input:checked) {
-      border-color: rgba(225, 29, 72, 0.42);
-      background: rgba(190, 24, 93, 0.1);
-    }
-
+    .check-item:last-child { margin-bottom: 0; }
+    .check-item:has(input:checked) { border-color: rgba(225, 29, 72, 0.42); background: rgba(190, 24, 93, 0.1); }
     .check-item input[type="checkbox"] {
-      appearance: none;
-      -webkit-appearance: none;
-      flex: 0 0 20px;
-      width: 20px;
-      height: 20px;
-      margin-top: 1px;
-      border-radius: 7px;
-      border: 1.5px solid rgba(255, 255, 255, 0.25);
-      background: rgba(10, 7, 12, 0.85);
-      cursor: pointer;
-      position: relative;
-      transition: all 0.15s ease;
+      appearance: none; -webkit-appearance: none; flex: 0 0 20px; width: 20px; height: 20px;
+      margin-top: 1px; border-radius: 7px; border: 1.5px solid rgba(255, 255, 255, 0.25);
+      background: rgba(10, 7, 12, 0.85); cursor: pointer; position: relative; transition: all 0.15s ease;
     }
-
     .check-item input[type="checkbox"]:checked {
       border-color: var(--crimson-bright);
       background: linear-gradient(135deg, var(--crimson-bright) 0%, var(--crimson) 100%);
     }
-
     .check-item input[type="checkbox"]:checked::after {
-      content: "";
-      position: absolute;
-      left: 6px;
-      top: 2.5px;
-      width: 5px;
-      height: 10px;
-      border: solid #ffffff;
-      border-width: 0 2px 2px 0;
-      transform: rotate(42deg);
+      content: ""; position: absolute; left: 6px; top: 2.5px; width: 5px; height: 10px;
+      border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(42deg);
     }
+    .check-text { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
+    .check-hint { margin-top: 3px; font-size: 11px; font-weight: 400; color: var(--muted); display: block; }
 
-    .check-text {
-      font-size: 13px;
-      font-weight: 600;
-      color: #ffffff;
-      flex: 1;
+    /* ---------- Разбивка ---------- */
+    details.breakdown summary {
+      list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #fff;
     }
-
-    .check-hint {
-      margin-top: 3px;
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--muted);
-      display: block;
+    details.breakdown summary::-webkit-details-marker { display: none; }
+    details.breakdown summary small { font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #fda4af; }
+    .bd-list { margin-top: 12px; }
+    .bd-row {
+      display: flex; justify-content: space-between; gap: 10px; padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 13px;
     }
+    .bd-row:last-child { border-bottom: none; font-weight: 800; }
+    .bd-row span:first-child { color: var(--muted); }
+    .bd-row .neg { color: #fb7185; }
+    .bd-row .pos { color: var(--emerald); }
 
+    /* ---------- Футер ---------- */
     .footer-btn {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      position: fixed; bottom: 0; left: 0; right: 0;
       padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
       background: linear-gradient(180deg, rgba(9, 8, 12, 0) 0%, rgba(9, 8, 12, 0.92) 32%, rgba(9, 8, 12, 0.98) 100%);
-      backdrop-filter: blur(12px);
-      z-index: 30;
+      backdrop-filter: blur(12px); z-index: 30;
     }
+    .footer-inner { max-width: 480px; margin: 0 auto; }
+    .btn-submit { width: 100%; }
 
-    .footer-inner {
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    @keyframes buttonShimmer {
-      0% {
-        background-position: 0% 50%;
-      }
-      50% {
-        background-position: 100% 50%;
-      }
-      100% {
-        background-position: 0% 50%;
-      }
-    }
+    @keyframes buttonShimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
 
     .btn-submit {
-      width: 100%;
       height: 50px;
       background: linear-gradient(110deg, #9f1239 0%, #e11d48 34%, #2563eb 68%, #be185d 100%);
-      background-size: 240% 100%;
-      animation: buttonShimmer 5.5s ease-in-out infinite;
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 16px;
-      font-size: 14px;
-      font-weight: 800;
-      letter-spacing: 0.03em;
-      text-transform: uppercase;
-      cursor: pointer;
+      background-size: 240% 100%; animation: buttonShimmer 5.5s ease-in-out infinite;
+      color: #fff; border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 16px;
+      font-size: 13px; font-weight: 800; letter-spacing: 0.03em; text-transform: uppercase; cursor: pointer;
       box-shadow: 0 10px 26px rgba(159, 18, 57, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.18);
       transition: transform 0.14s ease, filter 0.15s ease;
     }
+    .btn-submit:active { transform: scale(0.985); filter: brightness(1.06); }
 
-    .btn-submit:active {
-      transform: scale(0.985);
-      filter: brightness(1.06);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .btn-submit {
-        animation: none;
-      }
-    }
+    @media (prefers-reduced-motion: reduce) { .btn-submit { animation: none; } }
   </style>
 </head>
 <body>
@@ -463,6 +260,7 @@
           <div class="price-sub">(-15%)</div>
         </div>
       </div>
+      <div class="range-line">Реальный диапазон: <strong id="rangeText">—</strong></div>
       <div class="tier-badge">
         <span>Очков учтено: <strong id="totalPointsDisplay">0 pts</strong></span>
         <span id="segmentLabel">Сегмент: Стартовый</span>
@@ -477,12 +275,19 @@
 
       <div class="field">
         <label for="collectionPoints">Общие очки коллекции (Collection Points)</label>
-        <input type="number" id="collectionPoints" min="0" max="2000000" placeholder="Например: 125000" oninput="recalc()" />
+        <input type="number" inputmode="numeric" id="collectionPoints" min="0" max="2000000" placeholder="Например: 125000" oninput="recalc()" />
       </div>
 
+      <div class="coll-box" id="collBox">
+        <div class="coll-name" id="collName">Без звания</div>
+        <div class="coll-sub" id="collSub">Нужно 1 000 pts для первого звания</div>
+        <div class="coll-bar"><div class="coll-bar-fill" id="collBarFill"></div></div>
+      </div>
+      <div class="tier-dots" id="tierDots"></div>
+
       <div class="field">
-        <label for="totalSkins">Всего обликов на аккаунте (опционально)</label>
-        <input type="number" id="totalSkins" min="0" max="1500" placeholder="Например: 240" oninput="recalc()" />
+        <label for="totalSkins">Всего обликов на аккаунте (для описания, не влияет на цену)</label>
+        <input type="number" inputmode="numeric" id="totalSkins" min="0" max="1500" placeholder="Например: 240" oninput="recalc()" />
       </div>
 
       <div class="skin-row" id="row-cntLegend">
@@ -492,7 +297,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntLegend', -1)">−</button>
-          <input type="number" id="cntLegend" value="0" min="0" max="100" oninput="recalc()" />
+          <input type="number" inputmode="numeric" id="cntLegend" value="0" min="0" max="100" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntLegend', 1)">+</button>
         </div>
       </div>
@@ -504,7 +309,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntGrace', -1)">−</button>
-          <input type="number" id="cntGrace" value="0" min="0" max="200" oninput="recalc()" />
+          <input type="number" inputmode="numeric" id="cntGrace" value="0" min="0" max="200" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntGrace', 1)">+</button>
         </div>
       </div>
@@ -516,7 +321,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntCollector', -1)">−</button>
-          <input type="number" id="cntCollector" value="0" min="0" max="200" oninput="recalc()" />
+          <input type="number" inputmode="numeric" id="cntCollector" value="0" min="0" max="200" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntCollector', 1)">+</button>
         </div>
       </div>
@@ -528,7 +333,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntEpic', -1)">−</button>
-          <input type="number" id="cntEpic" value="0" min="0" max="500" oninput="recalc()" />
+          <input type="number" inputmode="numeric" id="cntEpic" value="0" min="0" max="500" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntEpic', 1)">+</button>
         </div>
       </div>
@@ -540,7 +345,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntExceptional', -1)">−</button>
-          <input type="number" id="cntExceptional" value="0" min="0" max="500" oninput="recalc()" />
+          <input type="number" inputmode="numeric" id="cntExceptional" value="0" min="0" max="500" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntExceptional', 1)">+</button>
         </div>
       </div>
@@ -552,7 +357,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntCommon', -1)">−</button>
-          <input type="number" id="cntCommon" value="0" min="0" max="1000" oninput="recalc()" />
+          <input type="number" inputmode="numeric" id="cntCommon" value="0" min="0" max="1000" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntCommon', 1)">+</button>
         </div>
       </div>
@@ -567,24 +372,29 @@
       <div class="field">
         <label for="rankSelect">Максимальный / текущий ранг</label>
         <select id="rankSelect" onchange="recalc()">
-          <option value="0">Ниже Эпика (Воин / Элита / Мастер / Грандмастер)</option>
+          <option value="0" selected>Не выбран / ниже Эпика</option>
           <option value="120">Эпик</option>
           <option value="200">Легенда</option>
-          <option value="300" selected>Мифический (0–24★)</option>
+          <option value="300">Мифический (0–24★)</option>
           <option value="450">Мифическая честь (25–49★)</option>
           <option value="650">Мифическая слава (50–99★)</option>
           <option value="950">Мифическое бессмертие (100★+)</option>
         </select>
       </div>
 
+      <div class="field">
+        <label for="emblemLevel">Уровень прокачки эмблем (1–60)</label>
+        <input type="number" inputmode="numeric" id="emblemLevel" min="1" max="60" placeholder="Например: 60" oninput="recalc()" />
+      </div>
+
       <div class="row-2">
         <div class="field">
           <label for="winrate">Винрейт (%)</label>
-          <input type="number" id="winrate" min="0" max="100" step="0.1" placeholder="55" oninput="recalc()" />
+          <input type="number" inputmode="decimal" id="winrate" min="0" max="100" step="0.1" placeholder="55" oninput="recalc()" />
         </div>
         <div class="field">
           <label for="matches">Ранговые матчи</label>
-          <input type="number" id="matches" min="0" max="100000" placeholder="4760" oninput="recalc()" />
+          <input type="number" inputmode="numeric" id="matches" min="0" max="100000" placeholder="4760" oninput="recalc()" />
         </div>
       </div>
     </div>
@@ -619,6 +429,13 @@
         </div>
       </label>
     </div>
+
+    <div class="card">
+      <details class="breakdown">
+        <summary><span>Из чего складывается цена</span><small>показать ▾</small></summary>
+        <div class="bd-list" id="bdList"></div>
+      </details>
+    </div>
   </div>
 
   <div class="footer-btn">
@@ -632,113 +449,251 @@
     if (tg) {
       tg.ready();
       tg.expand();
+      try { tg.setHeaderColor("#150b12"); } catch (e) {}
+      try { tg.setBackgroundColor("#09080c"); } catch (e) {}
+      try { tg.disableVerticalSwipes(); } catch (e) {}
     }
 
-    function haptic() {
-      if (tg && tg.HapticFeedback) {
-        tg.HapticFeedback.impactOccurred("light");
-      }
+    /* ===== Звания коллекции (из игры) ===== */
+    const COLLECTION_TIERS = [
+      { pts: 1000,   name: "Коллекционер-любитель",  color: "#cbd5e1" },
+      { pts: 4000,   name: "Младший коллекционер",   color: "#34d399" },
+      { pts: 10000,  name: "Опытный коллекционер",   color: "#38bdf8" },
+      { pts: 22000,  name: "Коллекционер-эксперт",   color: "#3b82f6" },
+      { pts: 44000,  name: "Знаменитый коллекционер", color: "#a855f7" },
+      { pts: 84000,  name: "Коллекционер-гуру",      color: "#ec4899" },
+      { pts: 160000, name: "Мегаколлекционер",       color: "#f97316" },
+      { pts: 280000, name: "Мировой коллекционер",   color: "#ef4444" }
+    ];
+
+    const PERSIST_IDS = [
+      "collectionPoints", "totalSkins", "cntLegend", "cntGrace", "cntCollector",
+      "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
+      "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
+    ];
+    const STORAGE_KEY = "mlbb_valuer_v4";
+
+    const shown = { market: 0, fast: 0 };
+    let lastTierIndex = -1;
+    let lastResult = null;
+
+    const $ = (id) => document.getElementById(id);
+    const fmt = (n) => Math.round(n).toLocaleString("ru-RU");
+
+    function haptic(type) {
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type || "light");
+    }
+
+    function readInt(id) {
+      const el = $(id);
+      const min = el.min !== "" ? Number(el.min) : 0;
+      const max = el.max !== "" ? Number(el.max) : Infinity;
+      const raw = parseInt(el.value, 10);
+      if (isNaN(raw)) return 0;
+      return Math.min(max, Math.max(min, raw));
+    }
+
+    function readEmblemLevel() {
+      const raw = parseInt($("emblemLevel").value, 10);
+      if (isNaN(raw)) return 0;
+      return Math.min(60, Math.max(1, raw));
+    }
+
+    function readFloat(id) {
+      const el = $(id);
+      const min = el.min !== "" ? Number(el.min) : 0;
+      const max = el.max !== "" ? Number(el.max) : Infinity;
+      const raw = parseFloat(el.value);
+      if (isNaN(raw)) return 0;
+      return Math.min(max, Math.max(min, raw));
+    }
+
+    function clampInputs() {
+      document.querySelectorAll('input[type="number"][max]').forEach((el) => {
+        if (el.value === "") return;
+        const max = Number(el.max);
+        const min = el.min !== "" ? Number(el.min) : 0;
+        const v = Number(el.value);
+        if (v > max) el.value = max;
+        else if (v < min) el.value = min;
+      });
     }
 
     function stepVal(id, delta) {
-      const el = document.getElementById(id);
-      const next = Math.max(0, (parseInt(el.value, 10) || 0) + delta);
-      el.value = next;
+      const el = $(id);
+      const max = el.max !== "" ? Number(el.max) : Infinity;
+      el.value = Math.min(max, Math.max(0, (parseInt(el.value, 10) || 0) + delta));
       haptic();
       recalc();
     }
 
     function syncActiveRows(counts) {
       Object.entries(counts).forEach(([id, val]) => {
-        const row = document.getElementById("row-" + id);
+        const row = $("row-" + id);
         if (row) row.classList.toggle("active-row", val > 0);
       });
     }
 
+    function buildTierDots() {
+      $("tierDots").innerHTML = COLLECTION_TIERS.map(() => '<div class="tier-dot"></div>').join("");
+    }
+
+    function getTierIndex(pts) {
+      let idx = -1;
+      for (let i = 0; i < COLLECTION_TIERS.length; i++) {
+        if (pts >= COLLECTION_TIERS[i].pts) idx = i;
+      }
+      return idx;
+    }
+
+    function renderCollection(pts) {
+      const idx = getTierIndex(pts);
+      const tier = idx >= 0 ? COLLECTION_TIERS[idx] : null;
+      const next = COLLECTION_TIERS[idx + 1] || null;
+
+      $("collName").textContent = tier ? tier.name : "Без звания";
+      $("collName").style.color = tier ? tier.color : "#9b95a6";
+      $("collBox").style.borderColor = tier ? tier.color + "66" : "";
+
+      const fill = $("collBarFill");
+      if (next) {
+        const from = tier ? tier.pts : 0;
+        const pct = Math.min(100, ((pts - from) / (next.pts - from)) * 100);
+        fill.style.width = pct.toFixed(1) + "%";
+        fill.style.background = next.color;
+        $("collSub").textContent = "До «" + next.name + "» ещё " + fmt(next.pts - pts) + " pts";
+      } else if (tier) {
+        fill.style.width = "100%";
+        fill.style.background = tier.color;
+        $("collSub").textContent = "Максимальное звание коллекции";
+      } else {
+        fill.style.width = "0%";
+        fill.style.background = "";
+        $("collSub").textContent = "Нужно 1 000 pts для первого звания";
+      }
+
+      document.querySelectorAll(".tier-dot").forEach((d, i) => {
+        d.style.background = i <= idx ? COLLECTION_TIERS[i].color : "";
+      });
+
+      if (idx !== lastTierIndex) {
+        if (lastTierIndex !== -1 && idx > lastTierIndex) {
+          haptic("medium");
+        }
+        lastTierIndex = idx;
+      }
+      return tier;
+    }
+
+    /* ===== Расчёт ===== */
     function calcPointsValueRUB(pts) {
       if (pts <= 0) return 0;
-
       let total = 0;
-
-      const tier1 = Math.min(pts, 50000);
-      total += (tier1 / 1000) * 45;
-
-      if (pts > 50000) {
-        const tier2 = Math.min(pts - 50000, 100000);
-        total += (tier2 / 1000) * 78;
-      }
-
-      if (pts > 150000) {
-        const tier3 = Math.min(pts - 150000, 100000);
-        total += (tier3 / 1000) * 115;
-      }
-
-      if (pts > 250000) {
-        const tier4 = pts - 250000;
-        total += (tier4 / 1000) * 85;
-      }
-
+      total += (Math.min(pts, 50000) / 1000) * 45;
+      if (pts > 50000)  total += (Math.min(pts - 50000, 100000) / 1000) * 78;
+      if (pts > 150000) total += (Math.min(pts - 150000, 100000) / 1000) * 115;
+      if (pts > 250000) total += ((pts - 250000) / 1000) * 85;
       return total;
     }
 
+    // На FunPay доплачивают только за высокий уровень (46–60) в бюджетном/среднем сегменте;
+    // на дорогих аккаунтах фулл эмблемы уже подразумеваются по умолчанию.
+    function calcEmblemBonus(lvl, pts, prelimPrice) {
+      if (!lvl || lvl <= 45) return 0;
+      const ratio = (lvl - 45) / 15;
+      const baseBonus = Math.pow(ratio, 1.2) * 400;
+
+      if (prelimPrice >= 15000 || pts >= 180000) return 0;
+      if (prelimPrice > 8000 || pts > 110000) {
+        const factor = Math.max(0, 1 - Math.max((prelimPrice - 8000) / 7000, (pts - 110000) / 70000));
+        return baseBonus * factor;
+      }
+      return baseBonus;
+    }
+
     function getSegmentName(pts, marketPrice) {
-      if (pts >= 250000 || marketPrice >= 28000) return "Топовый / Китовый";
+      if (pts >= 250000 || marketPrice >= 28000) return "Топовый";
       if (pts >= 140000 || marketPrice >= 13000) return "Мегаколлекционер";
-      if (pts >= 70000 || marketPrice >= 5500) return "Выше среднего";
-      if (pts >= 25000 || marketPrice >= 1800) return "Средний игровой";
+      if (pts >= 70000  || marketPrice >= 5500)  return "Выше среднего";
+      if (pts >= 25000  || marketPrice >= 1800)  return "Средний игровой";
       return "Стартовый";
     }
 
+    function animateNumber(key, el, to) {
+      const from = shown[key];
+      shown[key] = to;
+      if (from === to) { el.textContent = fmt(to) + " ₽"; return; }
+      const start = performance.now();
+      const dur = 380;
+      function tick(now) {
+        const t = Math.min(1, (now - start) / dur);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = fmt(from + (to - from) * eased) + " ₽";
+        if (t < 1 && shown[key] === to) requestAnimationFrame(tick);
+        else el.textContent = fmt(to) + " ₽";
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function renderBreakdown(parts, rawTotal, marketPrice) {
+      const rows = [
+        ["Очки коллекции", parts.basePrice],
+        ["Редкие облики (ликвидность)", parts.rareLiquidityBonus],
+        ["Ранг", parts.rankBonus],
+        ["Эмблемы", parts.emblemBonus],
+        ["Винрейт", parts.wrBonus]
+      ];
+      if (parts.minApplied) rows.push(["Минимальная цена", parts.minApplied]);
+
+      let html = rows
+        .filter((r) => r[1] > 0)
+        .map((r) => `<div class="bd-row"><span>${r[0]}</span><span>+${fmt(r[1])} ₽</span></div>`)
+        .join("");
+
+      const secDelta = marketPrice - rawTotal;
+      if (Math.abs(secDelta) >= 5) {
+        html += `<div class="bd-row"><span>Привязки и безопасность</span><span class="${secDelta < 0 ? "neg" : "pos"}">${secDelta < 0 ? "−" : "+"}${fmt(Math.abs(secDelta))} ₽</span></div>`;
+      }
+      html += `<div class="bd-row"><span>Итого</span><span>${fmt(marketPrice)} ₽</span></div>`;
+      $("bdList").innerHTML = html;
+    }
+
     function recalc() {
-      const manualPoints = Math.max(0, parseInt(document.getElementById("collectionPoints").value, 10) || 0);
-      const totalSkinsInput = Math.max(0, parseInt(document.getElementById("totalSkins").value, 10) || 0);
+      clampInputs();
 
-      const cntLegend = Math.max(0, parseInt(document.getElementById("cntLegend").value, 10) || 0);
-      const cntGrace = Math.max(0, parseInt(document.getElementById("cntGrace").value, 10) || 0);
-      const cntCollector = Math.max(0, parseInt(document.getElementById("cntCollector").value, 10) || 0);
-      const cntEpic = Math.max(0, parseInt(document.getElementById("cntEpic").value, 10) || 0);
-      const cntExceptional = Math.max(0, parseInt(document.getElementById("cntExceptional").value, 10) || 0);
-      const cntCommon = Math.max(0, parseInt(document.getElementById("cntCommon").value, 10) || 0);
+      const manualPoints = readInt("collectionPoints");
+      const totalSkinsInput = readInt("totalSkins");
 
-      syncActiveRows({
-        cntLegend,
-        cntGrace,
-        cntCollector,
-        cntEpic,
-        cntExceptional,
-        cntCommon
-      });
+      const cntLegend = readInt("cntLegend");
+      const cntGrace = readInt("cntGrace");
+      const cntCollector = readInt("cntCollector");
+      const cntEpic = readInt("cntEpic");
+      const cntExceptional = readInt("cntExceptional");
+      const cntCommon = readInt("cntCommon");
+
+      syncActiveRows({ cntLegend, cntGrace, cntCollector, cntEpic, cntExceptional, cntCommon });
 
       const countedSkins = cntLegend + cntGrace + cntCollector + cntEpic + cntExceptional + cntCommon;
       const shownSkinsCount = totalSkinsInput > 0 ? Math.max(totalSkinsInput, countedSkins) : countedSkins;
-      document.getElementById("skinsCountTag").textContent = shownSkinsCount + " шт.";
+      $("skinsCountTag").textContent = shownSkinsCount + " шт.";
 
       const skinsDerivedPoints =
-        cntLegend * 4000 +
-        cntGrace * 3000 +
-        cntCollector * 2000 +
-        cntEpic * 400 +
-        cntExceptional * 200 +
-        cntCommon * 100;
+        cntLegend * 4000 + cntGrace * 3000 + cntCollector * 2000 +
+        cntEpic * 400 + cntExceptional * 200 + cntCommon * 100;
 
       const effectivePoints = Math.max(manualPoints, skinsDerivedPoints);
+      const tier = renderCollection(effectivePoints);
 
       const basePrice = calcPointsValueRUB(effectivePoints);
 
       const rareLiquidityBonus =
-        cntLegend * 950 +
-        cntGrace * 550 +
-        cntCollector * 450 +
-        cntEpic * 45 +
-        cntExceptional * 15 +
-        cntCommon * 6;
+        cntLegend * 950 + cntGrace * 550 + cntCollector * 450 +
+        cntEpic * 45 + cntExceptional * 15 + cntCommon * 6;
 
-      const skinsFallbackBonus = manualPoints === 0 && totalSkinsInput > 0 ? totalSkinsInput * 14 : 0;
+      const rankBonus = parseInt($("rankSelect").value, 10) || 0;
 
-      const rankBonus = parseInt(document.getElementById("rankSelect").value, 10) || 0;
-
-      const wr = parseFloat(document.getElementById("winrate").value) || 0;
-      const matches = parseInt(document.getElementById("matches").value, 10) || 0;
+      const wr = readFloat("winrate");
+      const matches = readInt("matches");
       let wrBonus = 0;
       if (wr > 60 && matches >= 500) {
         const wrDelta = Math.min(wr - 60, 25);
@@ -746,15 +701,21 @@
         wrBonus = wrDelta * 35 * matchFactor;
       }
 
-      let rawTotal = basePrice + rareLiquidityBonus + skinsFallbackBonus + rankBonus + wrBonus;
+      const prelimTotal = basePrice + rareLiquidityBonus + rankBonus + wrBonus;
+      const emblemLevel = readEmblemLevel();
+      const emblemBonus = calcEmblemBonus(emblemLevel, effectivePoints, prelimTotal);
 
+      let rawTotal = prelimTotal + emblemBonus;
+
+      let minApplied = 0;
       if (rawTotal > 0 && rawTotal < 150) {
+        minApplied = 150 - rawTotal;
         rawTotal = 150;
       }
 
-      const hasMoonton = document.getElementById("chkMoonton").checked;
-      const cleanSocials = document.getElementById("chkCleanSocials").checked;
-      const hasReceipts = document.getElementById("chkFirstReceipt").checked;
+      const hasMoonton = $("chkMoonton").checked;
+      const cleanSocials = $("chkCleanSocials").checked;
+      const hasReceipts = $("chkFirstReceipt").checked;
 
       let securityMultiplier = 1.0;
       if (!hasMoonton) securityMultiplier *= 0.70;
@@ -764,15 +725,30 @@
       const marketPrice = Math.round((rawTotal * securityMultiplier) / 10) * 10;
       const fastPrice = Math.round((marketPrice * 0.85) / 10) * 10;
 
-      document.getElementById("marketPrice").textContent = marketPrice.toLocaleString("ru-RU") + " ₽";
-      document.getElementById("fastPrice").textContent = fastPrice.toLocaleString("ru-RU") + " ₽";
-      document.getElementById("totalPointsDisplay").textContent = effectivePoints.toLocaleString("ru-RU") + " pts";
-      document.getElementById("segmentLabel").textContent = "Сегмент: " + getSegmentName(effectivePoints, marketPrice);
+      animateNumber("market", $("marketPrice"), marketPrice);
+      animateNumber("fast", $("fastPrice"), fastPrice);
 
-      return {
+      if (marketPrice > 0) {
+        const low = Math.round((marketPrice * 0.9) / 10) * 10;
+        const high = Math.round((marketPrice * 1.12) / 10) * 10;
+        $("rangeText").textContent = fmt(low) + " – " + fmt(high) + " ₽";
+      } else {
+        $("rangeText").textContent = "—";
+      }
+
+      $("totalPointsDisplay").textContent = fmt(effectivePoints) + " pts";
+      $("segmentLabel").textContent = "Сегмент: " + getSegmentName(effectivePoints, marketPrice);
+
+      renderBreakdown(
+        { basePrice, rareLiquidityBonus, rankBonus, emblemBonus, wrBonus, minApplied },
+        rawTotal, marketPrice
+      );
+
+      lastResult = {
         market_price: marketPrice,
         fast_price: fastPrice,
         collection_points: effectivePoints,
+        collection_title: tier ? tier.name : "Без звания",
         total_skins: shownSkinsCount,
         legend_count: cntLegend,
         grace_count: cntGrace,
@@ -781,27 +757,92 @@
         exceptional_count: cntExceptional,
         common_count: cntCommon,
         rank_bonus: rankBonus,
-        rank_text: document.getElementById("rankSelect").selectedOptions[0].text,
+        rank_text: $("rankSelect").selectedOptions[0].text,
+        emblem_level: emblemLevel,
+        emblem_bonus: Math.round(emblemBonus),
         winrate: wr,
         matches: matches,
         moonton_mail: hasMoonton,
         clean_socials: cleanSocials,
         first_receipt: hasReceipts
       };
+
+      saveState();
+      return lastResult;
     }
 
+    /* ===== Сохранение формы ===== */
+    function saveState() {
+      try {
+        const state = {};
+        PERSIST_IDS.forEach((id) => {
+          const el = $(id);
+          state[id] = el.type === "checkbox" ? el.checked : el.value;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        PERSIST_IDS.forEach((id) => {
+          if (!(id in state)) return;
+          const el = $(id);
+          if (el.type === "checkbox") el.checked = !!state[id];
+          else el.value = state[id];
+        });
+      } catch (e) {}
+    }
+
+    /* ===== Объявление для FunPay ===== */
+    function buildAd() {
+      const r = lastResult || recalc();
+      const lines = ["Продам аккаунт Mobile Legends: Bang Bang", ""];
+      if (r.collection_points > 0) {
+        lines.push("🏆 Коллекция: " + r.collection_title + " (" + fmt(r.collection_points) + " очков)");
+      }
+      if (r.total_skins > 0) lines.push("🎭 Всего обликов: " + r.total_skins);
+      const rare = [];
+      if (r.legend_count) rare.push("Легендарных — " + r.legend_count);
+      if (r.grace_count) rare.push("Изящных — " + r.grace_count);
+      if (r.collector_count) rare.push("Изысканных — " + r.collector_count);
+      if (r.epic_count) rare.push("Роскошных — " + r.epic_count);
+      if (r.exceptional_count) rare.push("Исключительных — " + r.exceptional_count);
+      if (rare.length) lines.push("✨ " + rare.join(", "));
+      if (r.rank_bonus > 0) lines.push("⚔️ Ранг: " + r.rank_text);
+      if (r.emblem_level > 0) lines.push("🔰 Эмблемы: " + r.emblem_level + "/60 ур.");
+      if (r.winrate > 0) {
+        lines.push("📈 Винрейт: " + r.winrate + "%" + (r.matches ? " (" + fmt(r.matches) + " ранговых матчей)" : ""));
+      }
+      lines.push("");
+      lines.push("📧 Передача с почтой Moonton: " + (r.moonton_mail ? "да" : "нет"));
+      lines.push("🔒 Чужих привязок нет: " + (r.clean_socials ? "да" : "нет"));
+      if (r.first_receipt) lines.push("🧾 Есть чеки первых пополнений");
+      lines.push("");
+      lines.push("💰 Цена: " + fmt(r.market_price) + " ₽ (быстрая продажа — " + fmt(r.fast_price) + " ₽)");
+      return lines.join("\n");
+    }
+
+    /* ===== Отправка в бота ===== */
+    // ВАЖНО: tg.sendData работает только если Mini App открыт через reply-кнопку
+    // (KeyboardButton с web_app). Из inline-кнопки данные не дойдут.
     function sendToBot() {
       const payload = recalc();
+      payload.ad_text = buildAd();
       if (tg) {
-        if (tg.HapticFeedback) {
-          tg.HapticFeedback.notificationOccurred("success");
-        }
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
         tg.sendData(JSON.stringify(payload));
       } else {
         alert("Рыночная цена: " + payload.market_price + " ₽\nБыстрая продажа: " + payload.fast_price + " ₽");
       }
     }
 
+    /* ===== Старт ===== */
+    buildTierDots();
+    loadState();
     recalc();
   </script>
 </body>
