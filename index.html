@@ -402,25 +402,45 @@
       margin: 0 auto;
     }
 
+    @keyframes buttonShimmer {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
     .btn-submit {
       width: 100%;
       height: 50px;
-      background: linear-gradient(90deg, #9f1239 0%, #be185d 54%, #2563eb 100%);
+      background: linear-gradient(110deg, #9f1239 0%, #e11d48 34%, #2563eb 68%, #be185d 100%);
+      background-size: 240% 100%;
+      animation: buttonShimmer 5.5s ease-in-out infinite;
       color: #ffffff;
-      border: none;
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 16px;
       font-size: 14px;
       font-weight: 800;
       letter-spacing: 0.03em;
       text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 10px 26px rgba(159, 18, 57, 0.36);
+      box-shadow: 0 10px 26px rgba(159, 18, 57, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.18);
       transition: transform 0.14s ease, filter 0.15s ease;
     }
 
     .btn-submit:active {
       transform: scale(0.985);
       filter: brightness(1.06);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .btn-submit {
+        animation: none;
+      }
     }
   </style>
 </head>
@@ -479,7 +499,7 @@
 
       <div class="skin-row" id="row-cntGrace">
         <div class="skin-info">
-          <div class="skin-name">Изящные (коллаборации: Аспиранты, Hunter x Hunter, Наруто)</div>
+          <div class="skin-name">Изящные</div>
           <div class="skin-sub"><strong>3 000 pts</strong> за облик</div>
         </div>
         <div class="counter">
@@ -503,13 +523,25 @@
 
       <div class="skin-row" id="row-cntEpic">
         <div class="skin-info">
-          <div class="skin-name">Роскошные (эпик, зодиак, лайтборн)</div>
+          <div class="skin-name">Роскошные</div>
           <div class="skin-sub"><strong>400 pts</strong> за облик</div>
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntEpic', -1)">−</button>
           <input type="number" id="cntEpic" value="0" min="0" max="500" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntEpic', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="skin-row" id="row-cntExceptional">
+        <div class="skin-info">
+          <div class="skin-name">Исключительные</div>
+          <div class="skin-sub"><strong>200 pts</strong> за облик</div>
+        </div>
+        <div class="counter">
+          <button type="button" onclick="stepVal('cntExceptional', -1)">−</button>
+          <input type="number" id="cntExceptional" value="0" min="0" max="500" oninput="recalc()" />
+          <button type="button" onclick="stepVal('cntExceptional', 1)">+</button>
         </div>
       </div>
 
@@ -665,11 +697,19 @@
       const cntGrace = Math.max(0, parseInt(document.getElementById("cntGrace").value, 10) || 0);
       const cntCollector = Math.max(0, parseInt(document.getElementById("cntCollector").value, 10) || 0);
       const cntEpic = Math.max(0, parseInt(document.getElementById("cntEpic").value, 10) || 0);
+      const cntExceptional = Math.max(0, parseInt(document.getElementById("cntExceptional").value, 10) || 0);
       const cntCommon = Math.max(0, parseInt(document.getElementById("cntCommon").value, 10) || 0);
 
-      syncActiveRows({ cntLegend, cntGrace, cntCollector, cntEpic, cntCommon });
+      syncActiveRows({
+        cntLegend,
+        cntGrace,
+        cntCollector,
+        cntEpic,
+        cntExceptional,
+        cntCommon
+      });
 
-      const countedSkins = cntLegend + cntGrace + cntCollector + cntEpic + cntCommon;
+      const countedSkins = cntLegend + cntGrace + cntCollector + cntEpic + cntExceptional + cntCommon;
       const shownSkinsCount = totalSkinsInput > 0 ? Math.max(totalSkinsInput, countedSkins) : countedSkins;
       document.getElementById("skinsCountTag").textContent = shownSkinsCount + " шт.";
 
@@ -678,6 +718,7 @@
         cntGrace * 3000 +
         cntCollector * 2000 +
         cntEpic * 400 +
+        cntExceptional * 200 +
         cntCommon * 100;
 
       const effectivePoints = Math.max(manualPoints, skinsDerivedPoints);
@@ -689,6 +730,7 @@
         cntGrace * 550 +
         cntCollector * 450 +
         cntEpic * 45 +
+        cntExceptional * 15 +
         cntCommon * 6;
 
       const skinsFallbackBonus = manualPoints === 0 && totalSkinsInput > 0 ? totalSkinsInput * 14 : 0;
@@ -733,9 +775,10 @@
         collection_points: effectivePoints,
         total_skins: shownSkinsCount,
         legend_count: cntLegend,
-        grace_collab_count: cntGrace,
+        grace_count: cntGrace,
         collector_count: cntCollector,
         epic_count: cntEpic,
+        exceptional_count: cntExceptional,
         common_count: cntCommon,
         rank_bonus: rankBonus,
         rank_text: document.getElementById("rankSelect").selectedOptions[0].text,
