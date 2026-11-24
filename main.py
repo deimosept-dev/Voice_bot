@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import closing
 from datetime import datetime, timedelta
 
+from aiohttp import web
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.fsm.context import FSMContext
@@ -25,6 +26,7 @@ from aiogram.types import (
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
+PORT = int(os.getenv("PORT", "8080"))
 WEBAPP_URL = "https://deimosept-dev.github.io/Voice_bot/"
 ADMIN_ID = int(os.getenv("ADMIN_ID", "1636139244"))
 
@@ -229,6 +231,18 @@ async def send_stars_invoice(bot: Bot, chat_id: int, amount: int):
     )
 
 
+async def build_stars_invoice_link(bot: Bot, amount: int) -> str:
+    amount = max(1, min(2500, int(amount)))
+    return await bot.create_invoice_link(
+        title="Поддержка проекта",
+        description=f"Добровольная поддержка ({amount} ⭐)",
+        payload=f"stars_support_{amount}",
+        provider_token="",
+        currency="XTR",
+        prices=[LabeledPrice(label=f"{amount} звёзд", amount=amount)],
+    )
+
+
 dp = Dispatcher()
 
 
@@ -396,6 +410,56 @@ async def cmd_admin(message: Message):
     )
 
 
+def _cors_headers() -> dict[str, str]:
+    return {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+    }
+
+
+async def handle_options(request: web.Request) -> web.Response:
+    return web.Response(status=204, headers=_cors_headers())
+
+
+async def handle_create_invoice(request: web.Request) -> web.Response:
+    bot: Bot = request.app["bot"]
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    raw_amount = body.get("amount", 25)
+    try:
+        amount = int(raw_amount)
+    except (TypeError, ValueError):
+        return web.json_response({"ok": False, "error": "invalid_amount"}, status=400, headers=_cors_headers())
+
+    if amount < 1 or amount > 2500:
+        return web.json_response({"ok": False, "error": "amount_out_of_range"}, status=400, headers=_cors_headers())
+
+    try:
+        url = await build_stars_invoice_link(bot, amount)
+        return web.json_response({"ok": True, "url": url}, headers=_cors_headers())
+    except Exception as e:
+        print("Create invoice link error:", e)
+        return web.json_response({"ok": False, "error": "invoice_failed"}, status=500, headers=_cors_headers())
+
+
+async def start_http_server(bot: Bot) -> web.AppRunner:
+    app = web.Application()
+    app["bot"] = bot
+    app.router.add_options("/api/invoice", handle_options)
+    app.router.add_post("/api/invoice", handle_create_invoice)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    print(f"🌐 HTTP API для счетов запущен на порту {PORT}")
+    return runner
+
+
 async def setup_bot_ui(bot: Bot):
     await bot.set_my_commands([
         BotCommand(command="start", description="Открыть калькулятор и приветствие"),
@@ -417,8 +481,12 @@ async def main():
     init_db()
     bot = Bot(BOT_TOKEN)
     await setup_bot_ui(bot)
-    print("🚀 Бот-калькулятор запущен!")
-    await dp.start_polling(bot)
+    runner = await start_http_server(bot)
+    try:
+        print("🚀 Бот-калькулятор запущен!")
+        await dp.start_polling(bot)
+    finally:
+        await runner.cleanup()
 
 
 if __name__ == "__main__":
