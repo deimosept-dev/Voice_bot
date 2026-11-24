@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
@@ -65,17 +65,24 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER,
                 action TEXT,
-                created_at TEXT
+                created_at TEXT,
+                estimated_price INTEGER
             )
         """)
+        cols = [row["name"] for row in conn.execute("PRAGMA table_info(stats)").fetchall()]
+        if "estimated_price" not in cols:
+            conn.execute("ALTER TABLE stats ADD COLUMN estimated_price INTEGER")
         conn.commit()
 
 
-def log_action(user_id, action):
+def log_action(user_id, action, estimated_price: int | None = None):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with closing(db()) as conn:
         conn.execute("INSERT INTO users(user_id) VALUES(?) ON CONFLICT DO NOTHING", (user_id,))
-        conn.execute("INSERT INTO stats(user_id, action, created_at) VALUES(?, ?, ?)", (user_id, action, now))
+        conn.execute(
+            "INSERT INTO stats(user_id, action, created_at, estimated_price) VALUES(?, ?, ?, ?)",
+            (user_id, action, now, estimated_price),
+        )
         conn.commit()
 
 
@@ -239,7 +246,7 @@ async def handle_webapp(message: Message):
 
         await message.answer(answer, parse_mode="HTML", reply_markup=main_keyboard())
         if message.from_user:
-            log_action(message.from_user.id, "calculated_manual")
+            log_action(message.from_user.id, "calculated_manual", estimated_price=res["total_price"])
 
     except Exception as e:
         print("WebApp error:", e)
@@ -250,13 +257,39 @@ async def handle_webapp(message: Message):
 async def cmd_admin(message: Message):
     if not message.from_user or message.from_user.id != ADMIN_ID:
         return
+
+    today_prefix = datetime.now().strftime("%Y-%m-%d")
+    week_ago_str = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
+
     with closing(db()) as conn:
         total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         total_calcs = conn.execute("SELECT COUNT(*) FROM stats WHERE action='calculated_manual'").fetchone()[0]
+        today_calcs = conn.execute(
+            "SELECT COUNT(*) FROM stats WHERE action='calculated_manual' AND created_at LIKE ?",
+            (f"{today_prefix}%",),
+        ).fetchone()[0]
+        week_calcs = conn.execute(
+            "SELECT COUNT(*) FROM stats WHERE action='calculated_manual' AND created_at >= ?",
+            (week_ago_str,),
+        ).fetchone()[0]
+        active_today_users = conn.execute(
+            "SELECT COUNT(DISTINCT user_id) FROM stats WHERE created_at LIKE ?",
+            (f"{today_prefix}%",),
+        ).fetchone()[0]
+        avg_row = conn.execute(
+            "SELECT AVG(estimated_price) FROM stats WHERE action='calculated_manual' AND estimated_price IS NOT NULL AND estimated_price > 0"
+        ).fetchone()[0]
+
+    avg_price_str = _fmt_rub(round(avg_row)) if avg_row else "нет данных"
+
     await message.answer(
         f"📊 <b>Статистика бота</b>\n\n"
-        f"👥 Пользователей: <b>{total_users}</b>\n"
-        f"💰 Сделали расчёт: <b>{total_calcs}</b>",
+        f"👥 Всего пользователей: <b>{_fmt_int(total_users)}</b>\n"
+        f"🟢 Активных сегодня: <b>{_fmt_int(active_today_users)}</b>\n\n"
+        f"🧮 Расчётов всего: <b>{_fmt_int(total_calcs)}</b>\n"
+        f"📅 Расчётов за 7 дней: <b>{_fmt_int(week_calcs)}</b>\n"
+        f"⚡ Расчётов сегодня: <b>{_fmt_int(today_calcs)}</b>\n"
+        f"💰 Средняя оценка (не пустые): <b>{avg_price_str}</b>",
         parse_mode="HTML",
     )
 
