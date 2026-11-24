@@ -108,6 +108,28 @@
       text-transform: uppercase; letter-spacing: 0.07em; color: #fff;
     }
     .card-title small { font-size: 11px; font-weight: 600; text-transform: none; letter-spacing: 0; color: #fda4af; }
+    .card-title-right {
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-reset {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+      transition: transform 0.12s ease, color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+    }
+    .btn-reset:active {
+      transform: scale(0.95);
+      color: #fff;
+      border-color: var(--line-crimson);
+      background: rgba(190, 24, 93, 0.18);
+    }
 
     .field { margin-bottom: 12px; }
     .field:last-child { margin-bottom: 0; }
@@ -292,7 +314,10 @@
     <div class="card">
       <div class="card-title">
         <span>Облики по категориям</span>
-        <small id="skinsCountTag">0 шт.</small>
+        <div class="card-title-right">
+          <small id="skinsCountTag">0 шт.</small>
+          <button type="button" class="btn-reset" id="btnReset">Сбросить</button>
+        </div>
       </div>
 
       <div class="field">
@@ -492,7 +517,7 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v14";
+    const STORAGE_KEY = "mlbb_valuer_state_v15";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
@@ -777,6 +802,31 @@
       return restored;
     }
 
+    function resetAll() {
+      dismissKeyboard();
+      ["collectionPoints", "totalSkins", "emblemLevel", "winrate", "matches"].forEach((id) => {
+        const el = $(id);
+        if (el) el.value = "";
+      });
+      ["cntLegend", "cntGrace", "cntCollector", "cntEpic", "cntExceptional", "cntCommon"].forEach((id) => {
+        const el = $(id);
+        if (el) el.value = "0";
+      });
+      if ($("rankSelect")) $("rankSelect").value = "0";
+      if ($("chkMoonton")) $("chkMoonton").checked = true;
+      if ($("chkCleanSocials")) $("chkCleanSocials").checked = true;
+      if ($("chkFirstReceipt")) $("chkFirstReceipt").checked = false;
+
+      const box = $("toastBox");
+      if (box) box.style.display = "none";
+      if ($("toastPreview")) $("toastPreview").textContent = "";
+      lastResult = null;
+      lastTierIndex = -1;
+
+      haptic("light");
+      recalc(true);
+    }
+
     function recalc(shouldSave = true) {
       clampInputs();
 
@@ -894,27 +944,38 @@
       const r = lastResult || recalc(false);
       const lines = ["Продам аккаунт Mobile Legends: Bang Bang", ""];
       if (r.collection_points > 0) {
-        lines.push("🏆 Коллекция: " + r.collection_title + " (" + fmt(r.collection_points) + " очков)");
+        lines.push("🔹 Коллекция: " + r.collection_title + " (" + fmt(r.collection_points) + " очков)");
       }
-      if (r.total_skins > 0) lines.push("🎭 Всего обликов: " + r.total_skins);
-      const rare = [];
-      if (r.legend_count) rare.push("Легендарных — " + r.legend_count);
-      if (r.grace_count) rare.push("Изящных — " + r.grace_count);
-      if (r.collector_count) rare.push("Изысканных — " + r.collector_count);
-      if (r.epic_count) rare.push("Роскошных — " + r.epic_count);
-      if (r.exceptional_count) rare.push("Исключительных — " + r.exceptional_count);
-      if (rare.length) lines.push("✨ " + rare.join(", "));
-      if (r.rank_bonus > 0) lines.push("⚔️ Ранг: " + r.rank_text);
-      if (r.emblem_level > 0) lines.push("🔰 Эмблемы: " + r.emblem_level + "/60 ур.");
+      if (r.total_skins > 0) {
+        lines.push("🔸 Всего обликов: " + r.total_skins);
+      }
+      const rareLines = [];
+      if (r.legend_count) rareLines.push("🏅 Легендарных — " + r.legend_count);
+      if (r.grace_count) rareLines.push("Изящных — " + r.grace_count);
+      if (r.collector_count) rareLines.push("Изысканных — " + r.collector_count);
+      if (r.epic_count) rareLines.push("Роскошных — " + r.epic_count);
+      if (r.exceptional_count) rareLines.push("Исключительных — " + r.exceptional_count);
+      if (r.common_count) rareLines.push("Обычных — " + r.common_count);
+      if (rareLines.length) {
+        lines.push("");
+        lines.push(...rareLines);
+      }
+      const statLines = [];
+      if (r.rank_bonus > 0) statLines.push("👑 Ранг: " + r.rank_text);
+      if (r.emblem_level > 0) statLines.push("⚔️ Эмблемы: " + r.emblem_level + "/60 ур.");
       if (r.winrate > 0) {
-        lines.push("📈 Винрейт: " + r.winrate + "%" + (r.matches ? " (" + fmt(r.matches) + " ранговых матчей)" : ""));
+        statLines.push("🛡 Винрейт: " + r.winrate + "%" + (r.matches ? " (" + fmt(r.matches) + " ранговых матчей)" : ""));
+      }
+      if (statLines.length) {
+        lines.push("");
+        lines.push(...statLines);
       }
       lines.push("");
-      lines.push("📧 Передача с почтой Moonton: " + (r.moonton_mail ? "да" : "нет"));
-      lines.push("🔒 Чужих привязок нет: " + (r.clean_socials ? "да" : "нет"));
+      lines.push("☑️ Передача с почтой Moonton: " + (r.moonton_mail ? "да" : "нет"));
+      lines.push("☑️ Чужих привязок нет: " + (r.clean_socials ? "да" : "нет"));
       if (r.first_receipt) lines.push("🧾 Есть чеки первых пополнений");
       lines.push("");
-      lines.push("💰 Цена: " + fmt(r.market_price) + " ₽ (быстрая продажа — " + fmt(r.fast_price) + " ₽)");
+      lines.push("💠 Цена: " + fmt(r.market_price) + " ₽ (быстрая продажа — " + fmt(r.fast_price) + " ₽)");
       return lines.join("\n");
     }
 
@@ -976,6 +1037,14 @@
       submitBtn.addEventListener("click", (e) => {
         e.preventDefault();
         sendToBot();
+      });
+    }
+
+    const resetBtn = $("btnReset");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        resetAll();
       });
     }
 
