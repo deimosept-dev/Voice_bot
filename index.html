@@ -3,36 +3,52 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>MLBB Account Value — Калькулятор СНГ</title>
+  <title>Оценка Аккаунта</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
     :root {
-      --bg-main: #0e090c;
-      --bg-card: #181014;
-      --bg-input: #22161c;
-      --accent: #9b1b30;
-      --accent-bright: #d62846;
-      --accent-glow: rgba(214, 40, 70, 0.25);
-      --text-main: #f5eff2;
-      --text-muted: #9e8a93;
-      --border: #2e1d25;
-      --success: #2ecc71;
-      --warning: #f39c12;
+      --bg-base: #09080c;
+      --bg-top: #150b12;
+      --card-bg: rgba(24, 15, 22, 0.9);
+      --card-bg-2: rgba(16, 11, 16, 0.96);
+      --field-bg: rgba(11, 8, 13, 0.85);
+      --line: rgba(255, 255, 255, 0.08);
+      --line-crimson: rgba(225, 29, 72, 0.34);
+      --text: #f6f4f7;
+      --muted: #9b95a6;
+      --crimson: #9f1239;
+      --crimson-bright: #e11d48;
+      --crimson-glow: rgba(225, 29, 72, 0.22);
+      --ice: #7dd3fc;
+      --gold: #fbbf24;
+      --emerald: #34d399;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
 
     body {
-      background-color: var(--bg-main);
-      color: var(--text-main);
-      padding: 14px 14px 96px;
-      line-height: 1.4;
+      min-height: 100vh;
+      padding: 16px 14px 108px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 82% 4%, rgba(190, 24, 93, 0.22), transparent 44%),
+        radial-gradient(circle at 14% 16%, rgba(125, 211, 252, 0.06), transparent 46%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-base) 100%);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .wrap {
+      max-width: 480px;
+      margin: 0 auto;
     }
 
     .header {
@@ -41,101 +57,130 @@
     }
 
     .header h1 {
-      font-size: 19px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text);
     }
 
     .header p {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 3px;
+      margin-top: 4px;
+      font-size: 12.5px;
+      color: var(--muted);
     }
 
-    /* Блок итоговой цены */
     .price-box {
-      background: linear-gradient(145deg, #241118 0%, #160c10 100%);
-      border: 1px solid var(--accent);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 8px 24px var(--accent-glow);
       position: sticky;
       top: 8px;
-      z-index: 20;
+      z-index: 25;
+      background: linear-gradient(155deg, rgba(36, 17, 27, 0.96) 0%, rgba(17, 12, 18, 0.98) 100%);
+      border: 1px solid var(--line-crimson);
+      border-radius: 22px;
+      padding: 14px;
+      margin-bottom: 14px;
+      box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.52),
+        0 0 26px var(--crimson-glow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
 
     .price-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      align-items: center;
+      gap: 10px;
     }
 
     .price-item {
-      background: rgba(14, 9, 12, 0.55);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
+      background: rgba(10, 8, 12, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 11px 12px;
     }
 
     .price-label {
-      font-size: 11px;
-      color: var(--text-muted);
+      font-size: 10.5px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.05em;
+      color: var(--muted);
     }
 
     .price-value {
-      font-size: 22px;
-      font-weight: 800;
       margin-top: 4px;
+      font-size: 23px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
       color: #ffffff;
     }
 
     .price-value.fast {
-      color: var(--warning);
-      font-size: 19px;
+      margin-top: 2px;
+      font-size: 20px;
+      color: var(--gold);
+    }
+
+    .price-sub {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(251, 191, 36, 0.85);
     }
 
     .tier-badge {
       margin-top: 10px;
-      font-size: 12px;
-      color: var(--text-muted);
+      padding-top: 9px;
+      border-top: 1px solid rgba(255, 255, 255, 0.07);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-top: 1px solid var(--border);
-      padding-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
     }
 
     .tier-badge span strong {
-      color: var(--accent-bright);
+      color: #fda4af;
+      font-weight: 700;
     }
 
-    /* Карточки секций */
+    #segmentLabel {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--emerald);
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.24);
+    }
+
     .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      margin-bottom: 12px;
+      background: linear-gradient(180deg, var(--card-bg) 0%, var(--card-bg-2) 100%);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 15px;
+      margin-bottom: 14px;
+      box-shadow: 0 12px 26px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
     .card-title {
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 12px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      color: #fff;
+      gap: 8px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #ffffff;
     }
 
     .card-title small {
-      font-weight: 400;
-      color: var(--text-muted);
       font-size: 11px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #fda4af;
     }
 
     .field {
@@ -148,27 +193,36 @@
 
     label {
       display: block;
-      font-size: 12px;
-      color: var(--text-muted);
       margin-bottom: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
     }
 
     input[type="number"],
     select {
       width: 100%;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text-main);
-      padding: 11px 12px;
-      font-size: 15px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: var(--field-bg);
+      color: var(--text);
+      padding: 0 12px;
+      font-size: 14.5px;
+      font-weight: 600;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    input[type="number"]::placeholder {
+      color: rgba(155, 149, 166, 0.55);
+      font-weight: 500;
     }
 
     input[type="number"]:focus,
     select:focus {
-      border-color: var(--accent-bright);
+      border-color: var(--crimson-bright);
+      box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.18);
     }
 
     .row-2 {
@@ -177,287 +231,368 @@
       gap: 10px;
     }
 
-    /* Счётчики скинов */
     .skin-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(46, 29, 37, 0.6);
+      gap: 10px;
+      padding: 11px 10px;
+      margin: 0 -4px;
+      border-radius: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.16s ease;
+    }
+
+    .skin-row.active-row {
+      background: rgba(190, 24, 93, 0.11);
     }
 
     .skin-row:last-child {
       border-bottom: none;
-      padding-bottom: 0;
     }
 
     .skin-info {
-      max-width: 62%;
+      max-width: 63%;
     }
 
     .skin-name {
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.28;
     }
 
     .skin-sub {
-      font-size: 11px;
-      color: var(--text-muted);
+      margin-top: 3px;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    .skin-sub strong {
+      color: var(--ice);
+      font-weight: 600;
     }
 
     .counter {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
+      padding: 4px;
+      border-radius: 14px;
+      background: rgba(11, 8, 13, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.09);
     }
 
     .counter button {
       width: 30px;
       height: 30px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg-input);
-      color: #fff;
-      font-size: 16px;
+      border-radius: 10px;
+      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+      font-size: 17px;
       font-weight: 700;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s ease, background 0.15s ease;
     }
 
     .counter button:active {
-      background: var(--accent);
+      transform: scale(0.92);
+      background: var(--crimson);
     }
 
     .counter input {
-      width: 46px;
+      width: 44px !important;
+      height: 30px !important;
+      padding: 0 2px !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
       text-align: center;
-      padding: 6px 2px;
-      font-size: 14px;
+      font-size: 14px !important;
+      font-weight: 800 !important;
     }
 
-    /* Чекбоксы безопасности */
     .check-item {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 10px;
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      margin-bottom: 8px;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 11px 12px;
+      background: rgba(11, 8, 13, 0.78);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      margin-bottom: 9px;
       cursor: pointer;
       user-select: none;
+      transition: border-color 0.16s ease, background 0.16s ease;
     }
 
     .check-item:last-child {
       margin-bottom: 0;
     }
 
+    .check-item:has(input:checked) {
+      border-color: rgba(225, 29, 72, 0.42);
+      background: rgba(190, 24, 93, 0.1);
+    }
+
     .check-item input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--accent-bright);
+      appearance: none;
+      -webkit-appearance: none;
+      flex: 0 0 20px;
+      width: 20px;
+      height: 20px;
+      margin-top: 1px;
+      border-radius: 7px;
+      border: 1.5px solid rgba(255, 255, 255, 0.25);
+      background: rgba(10, 7, 12, 0.85);
       cursor: pointer;
+      position: relative;
+      transition: all 0.15s ease;
+    }
+
+    .check-item input[type="checkbox"]:checked {
+      border-color: var(--crimson-bright);
+      background: linear-gradient(135deg, var(--crimson-bright) 0%, var(--crimson) 100%);
+    }
+
+    .check-item input[type="checkbox"]:checked::after {
+      content: "";
+      position: absolute;
+      left: 6px;
+      top: 2.5px;
+      width: 5px;
+      height: 10px;
+      border: solid #ffffff;
+      border-width: 0 2px 2px 0;
+      transform: rotate(42deg);
     }
 
     .check-text {
       font-size: 13px;
+      font-weight: 600;
+      color: #ffffff;
       flex: 1;
     }
 
     .check-hint {
+      margin-top: 3px;
       font-size: 11px;
-      color: var(--text-muted);
+      font-weight: 400;
+      color: var(--muted);
       display: block;
     }
 
-    /* Нижняя кнопка */
     .footer-btn {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      padding: 12px 14px;
-      background: rgba(14, 9, 12, 0.94);
-      backdrop-filter: blur(8px);
-      border-top: 1px solid var(--border);
+      padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
+      background: linear-gradient(180deg, rgba(9, 8, 12, 0) 0%, rgba(9, 8, 12, 0.92) 32%, rgba(9, 8, 12, 0.98) 100%);
+      backdrop-filter: blur(12px);
       z-index: 30;
+    }
+
+    .footer-inner {
+      max-width: 480px;
+      margin: 0 auto;
     }
 
     .btn-submit {
       width: 100%;
-      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-bright) 100%);
-      color: #fff;
+      height: 50px;
+      background: linear-gradient(90deg, #9f1239 0%, #be185d 54%, #2563eb 100%);
+      color: #ffffff;
       border: none;
-      border-radius: 12px;
-      padding: 14px;
-      font-size: 15px;
-      font-weight: 700;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
       cursor: pointer;
-      box-shadow: 0 4px 16px var(--accent-glow);
+      box-shadow: 0 10px 26px rgba(159, 18, 57, 0.36);
+      transition: transform 0.14s ease, filter 0.15s ease;
     }
 
     .btn-submit:active {
-      transform: scale(0.99);
+      transform: scale(0.985);
+      filter: brightness(1.06);
     }
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Оценка Аккаунта</h1>
+      <p>Расчёт под реальный рынок СНГ (FunPay / Playerok)</p>
+    </div>
 
-  <div class="header">
-    <h1>Оценка аккаунта MLBB</h1>
-    <p>Расчёт под реальный рынок СНГ (FunPay / Playerok)</p>
-  </div>
-
-  <!-- Итоговая панель -->
-  <div class="price-box">
-    <div class="price-grid">
-      <div class="price-item">
-        <div class="price-label">Рыночная цена</div>
-        <div class="price-value" id="marketPrice">0 ₽</div>
+    <div class="price-box">
+      <div class="price-grid">
+        <div class="price-item">
+          <div class="price-label">Рыночная цена</div>
+          <div class="price-value" id="marketPrice">0 ₽</div>
+        </div>
+        <div class="price-item">
+          <div class="price-label">Быстрая продажа</div>
+          <div class="price-value fast" id="fastPrice">0 ₽</div>
+          <div class="price-sub">(-15%)</div>
+        </div>
       </div>
-      <div class="price-item">
-        <div class="price-label">Быстрая продажа (-15%)</div>
-        <div class="price-value fast" id="fastPrice">0 ₽</div>
-      </div>
-    </div>
-    <div class="tier-badge">
-      <span>Очков учтено: <strong id="totalPointsDisplay">0 pts</strong></span>
-      <span id="segmentLabel">Сегмент: Стартовый</span>
-    </div>
-  </div>
-
-  <!-- Очки коллекции -->
-  <div class="card">
-    <div class="card-title">
-      <span>1. Коллекция и облики</span>
-      <small>Из профиля игры</small>
-    </div>
-
-    <div class="field">
-      <label for="collectionPoints">Общие очки коллекции (Collection Points)</label>
-      <input type="number" id="collectionPoints" min="0" max="2000000" placeholder="Например: 125000" oninput="recalc()" />
-    </div>
-
-    <div class="field">
-      <label for="totalSkins">Всего обликов на аккаунте (опционально)</label>
-      <input type="number" id="totalSkins" min="0" max="1500" placeholder="Например: 240" oninput="recalc()" />
-    </div>
-
-    <div class="skin-row">
-      <div class="skin-info">
-        <div class="skin-name">Legend (Supreme)</div>
-        <div class="skin-sub">Магическое колесо / ивенты (4 000 pts)</div>
-      </div>
-      <div class="counter">
-        <button type="button" onclick="stepVal('cntLegend', -1)">−</button>
-        <input type="number" id="cntLegend" value="0" min="0" max="50" oninput="recalc()" />
-        <button type="button" onclick="stepVal('cntLegend', 1)">+</button>
+      <div class="tier-badge">
+        <span>Очков учтено: <strong id="totalPointsDisplay">0 pts</strong></span>
+        <span id="segmentLabel">Сегмент: Стартовый</span>
       </div>
     </div>
 
-    <div class="skin-row">
-      <div class="skin-info">
-        <div class="skin-name">Коллабы (Grand)</div>
-        <div class="skin-sub">KoF, Aspirants, Naruto, JJK (3 000 pts)</div>
+    <div class="card">
+      <div class="card-title">
+        <span>Облики по категориям</span>
+        <small id="skinsCountTag">0 шт.</small>
       </div>
-      <div class="counter">
-        <button type="button" onclick="stepVal('cntCollab', -1)">−</button>
-        <input type="number" id="cntCollab" value="0" min="0" max="100" oninput="recalc()" />
-        <button type="button" onclick="stepVal('cntCollab', 1)">+</button>
-      </div>
-    </div>
 
-    <div class="skin-row">
-      <div class="skin-info">
-        <div class="skin-name">Collector / Lucky Box</div>
-        <div class="skin-sub">Exquisite серия (2 000 pts)</div>
-      </div>
-      <div class="counter">
-        <button type="button" onclick="stepVal('cntCollector', -1)">−</button>
-        <input type="number" id="cntCollector" value="0" min="0" max="100" oninput="recalc()" />
-        <button type="button" onclick="stepVal('cntCollector', 1)">+</button>
-      </div>
-    </div>
-
-    <div class="skin-row">
-      <div class="skin-info">
-        <div class="skin-name">Epic / Zodiac / Lightborn</div>
-        <div class="skin-sub">Deluxe серия (400 pts)</div>
-      </div>
-      <div class="counter">
-        <button type="button" onclick="stepVal('cntEpic', -1)">−</button>
-        <input type="number" id="cntEpic" value="0" min="0" max="300" oninput="recalc()" />
-        <button type="button" onclick="stepVal('cntEpic', 1)">+</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Ранг и статистика -->
-  <div class="card">
-    <div class="card-title">
-      <span>2. Ранг и статистика</span>
-      <small>Влияет на ликвидность</small>
-    </div>
-
-    <div class="field">
-      <label for="rankSelect">Максимальный / текущий ранг</label>
-      <select id="rankSelect" onchange="recalc()">
-        <option value="0">Ниже Эпика (Воин / Элита / Мастер / Грандмастер)</option>
-        <option value="120">Эпик</option>
-        <option value="200">Легенда</option>
-        <option value="300" selected>Мифический (0–24★)</option>
-        <option value="450">Мифическая честь (25–49★)</option>
-        <option value="650">Мифическая слава (50–99★)</option>
-        <option value="950">Мифическое бессмертие (100★+)</option>
-      </select>
-    </div>
-
-    <div class="row-2">
       <div class="field">
-        <label for="winrate">Винрейт (%)</label>
-        <input type="number" id="winrate" min="0" max="100" step="0.1" placeholder="55.0" oninput="recalc()" />
+        <label for="collectionPoints">Общие очки коллекции (Collection Points)</label>
+        <input type="number" id="collectionPoints" min="0" max="2000000" placeholder="Например: 125000" oninput="recalc()" />
       </div>
+
       <div class="field">
-        <label for="matches">Всего матчей</label>
-        <input type="number" id="matches" min="0" max="50000" placeholder="2500" oninput="recalc()" />
+        <label for="totalSkins">Всего обликов на аккаунте (опционально)</label>
+        <input type="number" id="totalSkins" min="0" max="1500" placeholder="Например: 240" oninput="recalc()" />
+      </div>
+
+      <div class="skin-row" id="row-cntLegend">
+        <div class="skin-info">
+          <div class="skin-name">Легендарные</div>
+          <div class="skin-sub"><strong>4 000 pts</strong> за облик</div>
+        </div>
+        <div class="counter">
+          <button type="button" onclick="stepVal('cntLegend', -1)">−</button>
+          <input type="number" id="cntLegend" value="0" min="0" max="100" oninput="recalc()" />
+          <button type="button" onclick="stepVal('cntLegend', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="skin-row" id="row-cntGrace">
+        <div class="skin-info">
+          <div class="skin-name">Изящные (коллаборации: Аспиранты, Hunter x Hunter, Наруто)</div>
+          <div class="skin-sub"><strong>3 000 pts</strong> за облик</div>
+        </div>
+        <div class="counter">
+          <button type="button" onclick="stepVal('cntGrace', -1)">−</button>
+          <input type="number" id="cntGrace" value="0" min="0" max="200" oninput="recalc()" />
+          <button type="button" onclick="stepVal('cntGrace', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="skin-row" id="row-cntCollector">
+        <div class="skin-info">
+          <div class="skin-name">Изысканные</div>
+          <div class="skin-sub"><strong>2 000 pts</strong> за облик</div>
+        </div>
+        <div class="counter">
+          <button type="button" onclick="stepVal('cntCollector', -1)">−</button>
+          <input type="number" id="cntCollector" value="0" min="0" max="200" oninput="recalc()" />
+          <button type="button" onclick="stepVal('cntCollector', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="skin-row" id="row-cntEpic">
+        <div class="skin-info">
+          <div class="skin-name">Роскошные (эпик, зодиак, лайтборн)</div>
+          <div class="skin-sub"><strong>400 pts</strong> за облик</div>
+        </div>
+        <div class="counter">
+          <button type="button" onclick="stepVal('cntEpic', -1)">−</button>
+          <input type="number" id="cntEpic" value="0" min="0" max="500" oninput="recalc()" />
+          <button type="button" onclick="stepVal('cntEpic', 1)">+</button>
+        </div>
+      </div>
+
+      <div class="skin-row" id="row-cntCommon">
+        <div class="skin-info">
+          <div class="skin-name">Обычные</div>
+          <div class="skin-sub"><strong>100 pts</strong> за облик</div>
+        </div>
+        <div class="counter">
+          <button type="button" onclick="stepVal('cntCommon', -1)">−</button>
+          <input type="number" id="cntCommon" value="0" min="0" max="1000" oninput="recalc()" />
+          <button type="button" onclick="stepVal('cntCommon', 1)">+</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Безопасность -->
-  <div class="card">
-    <div class="card-title">
-      <span>3. Безопасность и привязки</span>
-      <small>Критично для сделки</small>
+    <div class="card">
+      <div class="card-title">
+        <span>Ранг и статистика</span>
+        <small>Влияет на ликвидность</small>
+      </div>
+
+      <div class="field">
+        <label for="rankSelect">Максимальный / текущий ранг</label>
+        <select id="rankSelect" onchange="recalc()">
+          <option value="0">Ниже Эпика (Воин / Элита / Мастер / Грандмастер)</option>
+          <option value="120">Эпик</option>
+          <option value="200">Легенда</option>
+          <option value="300" selected>Мифический (0–24★)</option>
+          <option value="450">Мифическая честь (25–49★)</option>
+          <option value="650">Мифическая слава (50–99★)</option>
+          <option value="950">Мифическое бессмертие (100★+)</option>
+        </select>
+      </div>
+
+      <div class="row-2">
+        <div class="field">
+          <label for="winrate">Винрейт (%)</label>
+          <input type="number" id="winrate" min="0" max="100" step="0.1" placeholder="55" oninput="recalc()" />
+        </div>
+        <div class="field">
+          <label for="matches">Ранговые матчи</label>
+          <input type="number" id="matches" min="0" max="100000" placeholder="4760" oninput="recalc()" />
+        </div>
+      </div>
     </div>
 
-    <label class="check-item">
-      <input type="checkbox" id="chkMoonton" checked onchange="recalc()" />
-      <div class="check-text">
-        Передача с почтой Moonton
-        <span class="check-hint">Без перепривязки почты цена падает на 30%</span>
+    <div class="card">
+      <div class="card-title">
+        <span>Безопасность и привязки</span>
+        <small>Критично для сделки</small>
       </div>
-    </label>
 
-    <label class="check-item">
-      <input type="checkbox" id="chkCleanSocials" checked onchange="recalc()" />
-      <div class="check-text">
-        Нет чужих привязок (VK / Google / Apple / TikTok)
-        <span class="check-hint">Утерянные соцсети снижают стоимость на 25%</span>
-      </div>
-    </label>
+      <label class="check-item">
+        <input type="checkbox" id="chkMoonton" checked onchange="recalc()" />
+        <div class="check-text">
+          Передача с почтой Moonton
+          <span class="check-hint">Без перепривязки почты цена падает на 30%</span>
+        </div>
+      </label>
 
-    <label class="check-item">
-      <input type="checkbox" id="chkFirstReceipt" onchange="recalc()" />
-      <div class="check-text">
-        Есть чеки первых пополнений (First Recharge)
-        <span class="check-hint">+8% к доверию и цене при продаже</span>
-      </div>
-    </label>
+      <label class="check-item">
+        <input type="checkbox" id="chkCleanSocials" checked onchange="recalc()" />
+        <div class="check-text">
+          Нет чужих привязок (VK / Google / Apple / TikTok)
+          <span class="check-hint">Утерянные соцсети снижают стоимость на 25%</span>
+        </div>
+      </label>
+
+      <label class="check-item">
+        <input type="checkbox" id="chkFirstReceipt" onchange="recalc()" />
+        <div class="check-text">
+          Есть чеки первых пополнений (First Recharge)
+          <span class="check-hint">+8% к доверию и цене при продаже</span>
+        </div>
+      </label>
+    </div>
   </div>
 
   <div class="footer-btn">
-    <button type="button" class="btn-submit" onclick="sendToBot()">Отправить расчёт в бота</button>
+    <div class="footer-inner">
+      <button type="button" class="btn-submit" onclick="sendToBot()">Получить точный расчёт</button>
+    </div>
   </div>
 
   <script>
@@ -481,13 +616,13 @@
       recalc();
     }
 
-    /**
-     * Прогрессивный расчёт базы по очкам коллекции под реальные сделки СНГ-рынка (FunPay / Playerok):
-     * - 0..50 000 pts:    45 ₽ за 1 000 pts (массовые аккаунты без редких серий)
-     * - 50..150 000 pts:  78 ₽ за 1 000 pts (средний сегмент с первыми редкими обликами)
-     * - 150..250 000 pts: 115 ₽ за 1 000 pts (жирные коллекции с Legend / Collector / коллабами)
-     * - 250 000+ pts:     85 ₽ за 1 000 pts (китовый сегмент с учётом потолка спроса)
-     */
+    function syncActiveRows(counts) {
+      Object.entries(counts).forEach(([id, val]) => {
+        const row = document.getElementById("row-" + id);
+        if (row) row.classList.toggle("active-row", val > 0);
+      });
+    }
+
     function calcPointsValueRUB(pts) {
       if (pts <= 0) return 0;
 
@@ -524,56 +659,57 @@
 
     function recalc() {
       const manualPoints = Math.max(0, parseInt(document.getElementById("collectionPoints").value, 10) || 0);
-      const totalSkins = Math.max(0, parseInt(document.getElementById("totalSkins").value, 10) || 0);
+      const totalSkinsInput = Math.max(0, parseInt(document.getElementById("totalSkins").value, 10) || 0);
 
       const cntLegend = Math.max(0, parseInt(document.getElementById("cntLegend").value, 10) || 0);
-      const cntCollab = Math.max(0, parseInt(document.getElementById("cntCollab").value, 10) || 0);
+      const cntGrace = Math.max(0, parseInt(document.getElementById("cntGrace").value, 10) || 0);
       const cntCollector = Math.max(0, parseInt(document.getElementById("cntCollector").value, 10) || 0);
       const cntEpic = Math.max(0, parseInt(document.getElementById("cntEpic").value, 10) || 0);
+      const cntCommon = Math.max(0, parseInt(document.getElementById("cntCommon").value, 10) || 0);
 
-      // Минимальные очки, исходя из выбранных редких скинов (чтобы не считать дважды при вводе общих pts)
+      syncActiveRows({ cntLegend, cntGrace, cntCollector, cntEpic, cntCommon });
+
+      const countedSkins = cntLegend + cntGrace + cntCollector + cntEpic + cntCommon;
+      const shownSkinsCount = totalSkinsInput > 0 ? Math.max(totalSkinsInput, countedSkins) : countedSkins;
+      document.getElementById("skinsCountTag").textContent = shownSkinsCount + " шт.";
+
       const skinsDerivedPoints =
         cntLegend * 4000 +
-        cntCollab * 3000 +
+        cntGrace * 3000 +
         cntCollector * 2000 +
-        cntEpic * 400;
+        cntEpic * 400 +
+        cntCommon * 100;
 
       const effectivePoints = Math.max(manualPoints, skinsDerivedPoints);
 
-      // 1. Базовая стоимость по прогрессивной шкале очков коллекции
-      let basePrice = calcPointsValueRUB(effectivePoints);
+      const basePrice = calcPointsValueRUB(effectivePoints);
 
-      // 2. Ликвидная премия за редкие серии (на ру-биржах именно они поднимают спрос)
       const rareLiquidityBonus =
         cntLegend * 950 +
-        cntCollab * 550 +
+        cntGrace * 550 +
         cntCollector * 450 +
-        cntEpic * 45;
+        cntEpic * 45 +
+        cntCommon * 6;
 
-      // Небольшая поправка за общее число скинов, если общие очки не вводили
-      const skinsFallbackBonus = manualPoints === 0 && totalSkins > 0 ? totalSkins * 14 : 0;
+      const skinsFallbackBonus = manualPoints === 0 && totalSkinsInput > 0 ? totalSkinsInput * 14 : 0;
 
-      // 3. Бонус за ранг (ориентир по реальной скупке/продаже СНГ)
       const rankBonus = parseInt(document.getElementById("rankSelect").value, 10) || 0;
 
-      // 4. Бонус за высокий винрейт при достаточном числе матчей
       const wr = parseFloat(document.getElementById("winrate").value) || 0;
       const matches = parseInt(document.getElementById("matches").value, 10) || 0;
       let wrBonus = 0;
       if (wr > 60 && matches >= 500) {
-        const wrDelta = Math.min(wr - 60, 25); // максимум учитываем до 85%
+        const wrDelta = Math.min(wr - 60, 25);
         const matchFactor = matches >= 3000 ? 1.3 : matches >= 1500 ? 1.0 : 0.6;
         wrBonus = wrDelta * 35 * matchFactor;
       }
 
       let rawTotal = basePrice + rareLiquidityBonus + skinsFallbackBonus + rankBonus + wrBonus;
 
-      // Минимальный порог живого аккаунта с рангом
       if (rawTotal > 0 && rawTotal < 150) {
         rawTotal = 150;
       }
 
-      // 5. Коэффициенты безопасности и привязок
       const hasMoonton = document.getElementById("chkMoonton").checked;
       const cleanSocials = document.getElementById("chkCleanSocials").checked;
       const hasReceipts = document.getElementById("chkFirstReceipt").checked;
@@ -595,11 +731,12 @@
         market_price: marketPrice,
         fast_price: fastPrice,
         collection_points: effectivePoints,
-        total_skins: totalSkins,
+        total_skins: shownSkinsCount,
         legend_count: cntLegend,
-        collab_count: cntCollab,
+        grace_collab_count: cntGrace,
         collector_count: cntCollector,
         epic_count: cntEpic,
+        common_count: cntCommon,
         rank_bonus: rankBonus,
         rank_text: document.getElementById("rankSelect").selectedOptions[0].text,
         winrate: wr,
@@ -622,7 +759,6 @@
       }
     }
 
-    // Первый расчёт при загрузке
     recalc();
   </script>
 </body>
