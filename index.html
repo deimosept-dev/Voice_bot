@@ -466,9 +466,12 @@
       { pts: 280000, name: "Мировой коллекционер",   color: "#ef4444" }
     ];
 
-    const COUNTER_IDS = ["cntLegend", "cntGrace", "cntCollector", "cntEpic", "cntExceptional", "cntCommon"];
-    const CLEAR_TEXT_IDS = ["collectionPoints", "totalSkins", "emblemLevel", "winrate", "matches"];
-    const STORAGE_KEY = "mlbb_valuer_v4";
+    const PERSIST_IDS = [
+      "collectionPoints", "totalSkins", "cntLegend", "cntGrace", "cntCollector",
+      "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
+      "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
+    ];
+    const STORAGE_KEY = "mlbb_valuer_persisted_v1";
 
     const shown = { market: 0, fast: 0 };
     let lastTierIndex = -1;
@@ -664,6 +667,33 @@
       $("bdList").innerHTML = html;
     }
 
+    function saveState() {
+      try {
+        const state = {};
+        PERSIST_IDS.forEach((id) => {
+          const el = $(id);
+          if (!el) return;
+          state[id] = el.type === "checkbox" ? el.checked : el.value;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        PERSIST_IDS.forEach((id) => {
+          if (!(id in state)) return;
+          const el = $(id);
+          if (!el) return;
+          if (el.type === "checkbox") el.checked = !!state[id];
+          else el.value = state[id];
+        });
+      } catch (e) {}
+    }
+
     function recalc() {
       clampInputs();
 
@@ -773,28 +803,8 @@
         first_receipt: hasReceipts
       };
 
+      saveState();
       return lastResult;
-    }
-
-    /* ===== Сброс с нуля при каждом заходе ===== */
-    function resetForm() {
-      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-      CLEAR_TEXT_IDS.forEach((id) => {
-        const el = $(id);
-        if (el) el.value = "";
-      });
-      COUNTER_IDS.forEach((id) => {
-        const el = $(id);
-        if (el) el.value = "0";
-      });
-      if ($("rankSelect")) $("rankSelect").selectedIndex = 0;
-      if ($("chkMoonton")) $("chkMoonton").checked = true;
-      if ($("chkCleanSocials")) $("chkCleanSocials").checked = true;
-      if ($("chkFirstReceipt")) $("chkFirstReceipt").checked = false;
-      shown.market = 0;
-      shown.fast = 0;
-      lastTierIndex = -1;
-      recalc();
     }
 
     function buildAd() {
@@ -850,14 +860,10 @@
       }
     });
 
-    window.addEventListener("pageshow", () => resetForm());
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "visible") resetForm();
-    });
-
     /* ===== Старт ===== */
     buildTierDots();
-    resetForm();
+    loadState();
+    recalc();
   </script>
 </body>
 </html>
