@@ -232,6 +232,67 @@
     .bd-row .neg { color: #fb7185; }
     .bd-row .pos { color: var(--emerald); }
 
+    .donate-card {
+      background: linear-gradient(160deg, rgba(32, 16, 25, 0.94) 0%, rgba(16, 11, 16, 0.98) 100%);
+      border-color: rgba(225, 29, 72, 0.26);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.42), 0 0 22px rgba(225, 29, 72, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+    .donate-sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      line-height: 1.45;
+    }
+    .star-chips {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .star-chip {
+      height: 40px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(11, 8, 13, 0.85);
+      color: #f6f4f7;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      transition: transform 0.12s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+    }
+    .star-chip.active {
+      border-color: rgba(251, 191, 36, 0.58);
+      background: linear-gradient(145deg, rgba(225, 29, 72, 0.24) 0%, rgba(251, 191, 36, 0.16) 100%);
+      color: var(--gold);
+      box-shadow: 0 0 14px rgba(251, 191, 36, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+    .star-chip:active { transform: scale(0.95); }
+    .donate-row {
+      display: grid;
+      grid-template-columns: 112px 1fr;
+      gap: 9px;
+      align-items: center;
+    }
+    .btn-donate {
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid rgba(251, 191, 36, 0.42);
+      background: linear-gradient(135deg, rgba(159, 18, 57, 0.88) 0%, rgba(225, 29, 72, 0.78) 65%, rgba(180, 120, 15, 0.55) 100%);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(159, 18, 57, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      transition: transform 0.12s ease, filter 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-donate:active {
+      transform: scale(0.97);
+      filter: brightness(1.08);
+      border-color: rgba(251, 191, 36, 0.75);
+    }
+
     .toast-box {
       display: none;
       margin-bottom: 14px;
@@ -483,6 +544,24 @@
         <div class="bd-list" id="bdList"></div>
       </details>
     </div>
+
+    <div class="card donate-card">
+      <div class="card-title">
+        <span>Поддержать автора</span>
+        <small>Telegram Stars</small>
+      </div>
+      <div class="donate-sub">Выбери количество звёзд или введи своё число (1–2500) — откроется оплата в боте.</div>
+      <div class="star-chips">
+        <button type="button" class="star-chip" data-stars="10" onclick="selectStars(10)">10 ⭐</button>
+        <button type="button" class="star-chip active" data-stars="25" onclick="selectStars(25)">25 ⭐</button>
+        <button type="button" class="star-chip" data-stars="50" onclick="selectStars(50)">50 ⭐</button>
+        <button type="button" class="star-chip" data-stars="100" onclick="selectStars(100)">100 ⭐</button>
+      </div>
+      <div class="donate-row">
+        <input type="number" inputmode="numeric" enterkeyhint="done" id="customStars" min="1" max="2500" value="25" oninput="syncStarChips()" />
+        <button type="button" class="btn-donate" id="btnDonate">⭐ Поддержать</button>
+      </div>
+    </div>
   </div>
 
   <div class="footer-btn">
@@ -501,6 +580,8 @@
       try { tg.disableVerticalSwipes(); } catch (e) {}
     }
 
+    const BOT_USERNAME = "Voice_master_ai_bot";
+
     const COLLECTION_TIERS = [
       { pts: 1000,   name: "Коллекционер-любитель",  color: "#cbd5e1" },
       { pts: 4000,   name: "Младший коллекционер",   color: "#34d399" },
@@ -517,7 +598,7 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v15";
+    const STORAGE_KEY = "mlbb_valuer_state_v17";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
@@ -569,7 +650,7 @@
 
     function clampInputs() {
       document.querySelectorAll('input[type="number"][max]').forEach((el) => {
-        if (el.value === "") return;
+        if (el.id === "customStars" || el.value === "") return;
         const max = Number(el.max);
         const min = el.min !== "" ? Number(el.min) : 0;
         const v = Number(el.value);
@@ -1032,6 +1113,38 @@
       }
     }
 
+    function selectStars(val) {
+      if ($("customStars")) $("customStars").value = String(val);
+      haptic("light");
+      syncStarChips();
+    }
+
+    function syncStarChips() {
+      const cur = parseInt($("customStars") ? $("customStars").value : "0", 10) || 0;
+      document.querySelectorAll(".star-chip").forEach((chip) => {
+        const chipVal = parseInt(chip.getAttribute("data-stars"), 10);
+        chip.classList.toggle("active", chipVal === cur);
+      });
+    }
+
+    function openDonateInBot() {
+      dismissKeyboard();
+      const raw = parseInt($("customStars") ? $("customStars").value : "25", 10);
+      const amount = (!isNaN(raw) && raw >= 1 && raw <= 2500) ? raw : 25;
+      if ($("customStars")) $("customStars").value = String(amount);
+      syncStarChips();
+      haptic("medium");
+
+      const deepLink = `https://t.me/${BOT_USERNAME}?start=donate_${amount}`;
+      if (tg && typeof tg.openTelegramLink === "function") {
+        try {
+          tg.openTelegramLink(deepLink);
+          return;
+        } catch (e) {}
+      }
+      window.open(deepLink, "_blank");
+    }
+
     const submitBtn = $("btnGetCalc");
     if (submitBtn) {
       submitBtn.addEventListener("click", (e) => {
@@ -1045,6 +1158,14 @@
       resetBtn.addEventListener("click", (e) => {
         e.preventDefault();
         resetAll();
+      });
+    }
+
+    const donateBtn = $("btnDonate");
+    if (donateBtn) {
+      donateBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        openDonateInBot();
       });
     }
 
@@ -1083,6 +1204,7 @@
     /* ===== Старт ===== */
     buildTierDots();
     loadState(() => recalc(false));
+    syncStarChips();
   </script>
 </body>
 </html>
