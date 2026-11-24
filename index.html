@@ -492,7 +492,7 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v12";
+    const STORAGE_KEY = "mlbb_valuer_state_v14";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
@@ -947,11 +947,10 @@
 
     function sendToBot() {
       dismissKeyboard();
-      const payload = recalc(true);
+      recalc(true);
       const reportText = buildAd();
-      payload.ad_text = reportText;
-
       const copied = copyTextNow(reportText);
+
       const box = $("toastBox");
       if (box) {
         $("toastTitle").textContent = copied
@@ -962,14 +961,12 @@
           : "Скопируй текст ниже и вставь в чат:";
         $("toastPreview").textContent = reportText;
         box.style.display = "block";
+        try { box.scrollIntoView({ behavior: "smooth", block: "nearest" }); } catch (e) {}
       }
 
       if (tg) {
         try {
           if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-        } catch (e) {}
-        try {
-          tg.sendData(JSON.stringify(payload));
         } catch (e) {}
       }
     }
