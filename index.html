@@ -70,6 +70,7 @@
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 11px 12px;
+      cursor: pointer;
     }
     .price-label {
       font-size: 10.5px; font-weight: 700; text-transform: uppercase;
@@ -275,7 +276,7 @@
 
       <div class="field">
         <label for="collectionPoints">Общие очки коллекции (Collection Points)</label>
-        <input type="number" inputmode="numeric" id="collectionPoints" min="0" max="2000000" placeholder="Например: 125000" oninput="recalc()" />
+        <input type="number" inputmode="numeric" enterkeyhint="done" id="collectionPoints" min="0" max="2000000" placeholder="Например: 125000" oninput="recalc()" />
       </div>
 
       <div class="coll-box" id="collBox">
@@ -287,7 +288,7 @@
 
       <div class="field">
         <label for="totalSkins">Всего обликов на аккаунте (для описания, не влияет на цену)</label>
-        <input type="number" inputmode="numeric" id="totalSkins" min="0" max="1500" placeholder="Например: 240" oninput="recalc()" />
+        <input type="number" inputmode="numeric" enterkeyhint="done" id="totalSkins" min="0" max="1500" placeholder="Например: 240" oninput="recalc()" />
       </div>
 
       <div class="skin-row" id="row-cntLegend">
@@ -297,7 +298,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntLegend', -1)">−</button>
-          <input type="number" inputmode="numeric" id="cntLegend" value="0" min="0" max="100" oninput="recalc()" />
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="cntLegend" value="0" min="0" max="100" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntLegend', 1)">+</button>
         </div>
       </div>
@@ -309,7 +310,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntGrace', -1)">−</button>
-          <input type="number" inputmode="numeric" id="cntGrace" value="0" min="0" max="200" oninput="recalc()" />
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="cntGrace" value="0" min="0" max="200" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntGrace', 1)">+</button>
         </div>
       </div>
@@ -321,7 +322,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntCollector', -1)">−</button>
-          <input type="number" inputmode="numeric" id="cntCollector" value="0" min="0" max="200" oninput="recalc()" />
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="cntCollector" value="0" min="0" max="200" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntCollector', 1)">+</button>
         </div>
       </div>
@@ -333,7 +334,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntEpic', -1)">−</button>
-          <input type="number" inputmode="numeric" id="cntEpic" value="0" min="0" max="500" oninput="recalc()" />
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="cntEpic" value="0" min="0" max="500" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntEpic', 1)">+</button>
         </div>
       </div>
@@ -345,7 +346,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntExceptional', -1)">−</button>
-          <input type="number" inputmode="numeric" id="cntExceptional" value="0" min="0" max="500" oninput="recalc()" />
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="cntExceptional" value="0" min="0" max="500" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntExceptional', 1)">+</button>
         </div>
       </div>
@@ -357,7 +358,7 @@
         </div>
         <div class="counter">
           <button type="button" onclick="stepVal('cntCommon', -1)">−</button>
-          <input type="number" inputmode="numeric" id="cntCommon" value="0" min="0" max="1000" oninput="recalc()" />
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="cntCommon" value="0" min="0" max="1000" oninput="recalc()" />
           <button type="button" onclick="stepVal('cntCommon', 1)">+</button>
         </div>
       </div>
@@ -384,17 +385,17 @@
 
       <div class="field">
         <label for="emblemLevel">Уровень прокачки эмблем (1–60)</label>
-        <input type="number" inputmode="numeric" id="emblemLevel" min="1" max="60" placeholder="Например: 60" oninput="recalc()" />
+        <input type="number" inputmode="numeric" enterkeyhint="done" id="emblemLevel" min="1" max="60" placeholder="Например: 60" oninput="recalc()" />
       </div>
 
       <div class="row-2">
         <div class="field">
           <label for="winrate">Винрейт (%)</label>
-          <input type="number" inputmode="decimal" id="winrate" min="0" max="100" step="0.1" placeholder="55" oninput="recalc()" />
+          <input type="number" inputmode="decimal" enterkeyhint="done" id="winrate" min="0" max="100" step="0.1" placeholder="55" oninput="recalc()" />
         </div>
         <div class="field">
           <label for="matches">Ранговые матчи</label>
-          <input type="number" inputmode="numeric" id="matches" min="0" max="100000" placeholder="4760" oninput="recalc()" />
+          <input type="number" inputmode="numeric" enterkeyhint="done" id="matches" min="0" max="100000" placeholder="4760" oninput="recalc()" />
         </div>
       </div>
     </div>
@@ -454,7 +455,6 @@
       try { tg.disableVerticalSwipes(); } catch (e) {}
     }
 
-    /* ===== Звания коллекции (из игры) ===== */
     const COLLECTION_TIERS = [
       { pts: 1000,   name: "Коллекционер-любитель",  color: "#cbd5e1" },
       { pts: 4000,   name: "Младший коллекционер",   color: "#34d399" },
@@ -466,11 +466,8 @@
       { pts: 280000, name: "Мировой коллекционер",   color: "#ef4444" }
     ];
 
-    const PERSIST_IDS = [
-      "collectionPoints", "totalSkins", "cntLegend", "cntGrace", "cntCollector",
-      "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
-      "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
-    ];
+    const COUNTER_IDS = ["cntLegend", "cntGrace", "cntCollector", "cntEpic", "cntExceptional", "cntCommon"];
+    const CLEAR_TEXT_IDS = ["collectionPoints", "totalSkins", "emblemLevel", "winrate", "matches"];
     const STORAGE_KEY = "mlbb_valuer_v4";
 
     const shown = { market: 0, fast: 0 };
@@ -482,6 +479,18 @@
 
     function haptic(type) {
       if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(type || "light");
+    }
+
+    function dismissKeyboard(target) {
+      const active = document.activeElement;
+      const isInteractive = target && target.closest("input, textarea, select, button, .counter, label.check-item");
+      if (isInteractive) return;
+      if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) {
+        active.blur();
+      }
+      document.querySelectorAll("input, textarea, select").forEach((el) => {
+        if (document.activeElement === el) el.blur();
+      });
     }
 
     function readInt(id) {
@@ -585,7 +594,6 @@
       return tier;
     }
 
-    /* ===== Расчёт ===== */
     function calcPointsValueRUB(pts) {
       if (pts <= 0) return 0;
       let total = 0;
@@ -765,37 +773,30 @@
         first_receipt: hasReceipts
       };
 
-      saveState();
       return lastResult;
     }
 
-    /* ===== Сохранение формы ===== */
-    function saveState() {
-      try {
-        const state = {};
-        PERSIST_IDS.forEach((id) => {
-          const el = $(id);
-          state[id] = el.type === "checkbox" ? el.checked : el.value;
-        });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {}
+    /* ===== Сброс с нуля при каждом заходе ===== */
+    function resetForm() {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      CLEAR_TEXT_IDS.forEach((id) => {
+        const el = $(id);
+        if (el) el.value = "";
+      });
+      COUNTER_IDS.forEach((id) => {
+        const el = $(id);
+        if (el) el.value = "0";
+      });
+      if ($("rankSelect")) $("rankSelect").selectedIndex = 0;
+      if ($("chkMoonton")) $("chkMoonton").checked = true;
+      if ($("chkCleanSocials")) $("chkCleanSocials").checked = true;
+      if ($("chkFirstReceipt")) $("chkFirstReceipt").checked = false;
+      shown.market = 0;
+      shown.fast = 0;
+      lastTierIndex = -1;
+      recalc();
     }
 
-    function loadState() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const state = JSON.parse(raw);
-        PERSIST_IDS.forEach((id) => {
-          if (!(id in state)) return;
-          const el = $(id);
-          if (el.type === "checkbox") el.checked = !!state[id];
-          else el.value = state[id];
-        });
-      } catch (e) {}
-    }
-
-    /* ===== Объявление для FunPay ===== */
     function buildAd() {
       const r = lastResult || recalc();
       const lines = ["Продам аккаунт Mobile Legends: Bang Bang", ""];
@@ -824,10 +825,8 @@
       return lines.join("\n");
     }
 
-    /* ===== Отправка в бота ===== */
-    // ВАЖНО: tg.sendData работает только если Mini App открыт через reply-кнопку
-    // (KeyboardButton с web_app). Из inline-кнопки данные не дойдут.
     function sendToBot() {
+      dismissKeyboard();
       const payload = recalc();
       payload.ad_text = buildAd();
       if (tg) {
@@ -838,12 +837,8 @@
       }
     }
 
-    document.addEventListener("pointerdown", (e) => {
-      const active = document.activeElement;
-      if (!active || !/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
-      if (e.target.closest("input, textarea, select, button, .counter, label.check-item")) return;
-      active.blur();
-    }, { passive: true });
+    document.addEventListener("click", (e) => dismissKeyboard(e.target));
+    document.addEventListener("touchend", (e) => dismissKeyboard(e.target), { passive: true });
 
     document.addEventListener("keydown", (e) => {
       if (e.key === "Enter") {
@@ -855,15 +850,14 @@
       }
     });
 
-    ["collectionPoints", "totalSkins", "emblemLevel", "winrate", "matches"].forEach((id) => {
-      const el = $(id);
-      if (el) el.setAttribute("enterkeyhint", "done");
+    window.addEventListener("pageshow", () => resetForm());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") resetForm();
     });
 
     /* ===== Старт ===== */
     buildTierDots();
-    loadState();
-    recalc();
+    resetForm();
   </script>
 </body>
 </html>
