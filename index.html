@@ -210,6 +210,28 @@
     .bd-row .neg { color: #fb7185; }
     .bd-row .pos { color: var(--emerald); }
 
+    .toast-box {
+      display: none;
+      margin-bottom: 14px;
+      padding: 13px 14px;
+      border-radius: 18px;
+      background: rgba(16, 42, 34, 0.94);
+      border: 1px solid rgba(52, 211, 153, 0.42);
+      color: #ecfdf5;
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+    .toast-box strong { color: var(--emerald); display: block; margin-bottom: 4px; font-size: 13px; }
+    .toast-preview {
+      margin-top: 8px;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(9, 8, 12, 0.72);
+      color: #e2e8f0;
+      font-size: 11.5px;
+      white-space: pre-line;
+    }
+
     .footer-btn {
       position: fixed; bottom: 0; left: 0; right: 0;
       padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
@@ -259,6 +281,12 @@
         <span>Очков учтено: <strong id="totalPointsDisplay">0 pts</strong></span>
         <span id="segmentLabel">Сегмент: Стартовый</span>
       </div>
+    </div>
+
+    <div class="toast-box" id="toastBox">
+      <strong id="toastTitle">Расчёт готов</strong>
+      <div id="toastDesc"></div>
+      <div class="toast-preview" id="toastPreview"></div>
     </div>
 
     <div class="card">
@@ -464,13 +492,12 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v8";
+    const STORAGE_KEY = "mlbb_valuer_state_v9";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
     let lastTierIndex = -1;
     let lastResult = null;
-    let lastParts = null;
 
     const $ = (id) => document.getElementById(id);
     const fmt = (n) => Math.round(n).toLocaleString("ru-RU");
@@ -831,8 +858,10 @@
       $("totalPointsDisplay").textContent = fmt(effectivePoints) + " pts";
       $("segmentLabel").textContent = "Сегмент: " + getSegmentName(effectivePoints, marketPrice);
 
-      lastParts = { basePrice, rareLiquidityBonus, rankBonus, emblemBonus, wrBonus, minApplied };
-      renderBreakdown(lastParts, rawTotal, marketPrice);
+      renderBreakdown(
+        { basePrice, rareLiquidityBonus, rankBonus, emblemBonus, wrBonus, minApplied },
+        rawTotal, marketPrice
+      );
 
       lastResult = {
         market_price: marketPrice,
@@ -854,14 +883,7 @@
         matches: matches,
         moonton_mail: hasMoonton,
         clean_socials: cleanSocials,
-        first_receipt: hasReceipts,
-        parts: {
-          collection_rub: Math.round(basePrice),
-          rare_rub: Math.round(rareLiquidityBonus),
-          rank_rub: Math.round(rankBonus),
-          emblem_rub: Math.round(emblemBonus),
-          winrate_rub: Math.round(wrBonus)
-        }
+        first_receipt: hasReceipts
       };
 
       if (shouldSave) saveState();
@@ -896,16 +918,52 @@
       return lines.join("\n");
     }
 
-    function sendToBot() {
+    async function copyTextSafe(text) {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (e) {}
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function sendToBot() {
       dismissKeyboard();
       const payload = recalc(true);
-      payload.ad_text = buildAd();
+      const reportText = buildAd();
+      payload.ad_text = reportText;
+
       if (tg) {
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-        tg.sendData(JSON.stringify(payload));
-      } else {
-        alert(payload.ad_text);
+        try {
+          tg.sendData(JSON.stringify(payload));
+        } catch (e) {}
       }
+
+      const copied = await copyTextSafe(reportText);
+      const box = $("toastBox");
+      $("toastTitle").textContent = copied
+        ? "Расчёт скопирован в буфер обмена"
+        : "Готовый расчёт";
+      $("toastDesc").textContent = copied
+        ? "Если окно не закрылось автоматически, вставь готовый текст в чат бота."
+        : "Скопируй текст ниже и отправь в чат бота:";
+      $("toastPreview").textContent = reportText;
+      box.style.display = "block";
+      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
     document.addEventListener("click", (e) => dismissKeyboard(e.target));
