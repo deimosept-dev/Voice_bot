@@ -287,10 +287,21 @@
       box-shadow: 0 8px 20px rgba(159, 18, 57, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.16);
       transition: transform 0.12s ease, filter 0.15s ease, border-color 0.15s ease;
     }
+    .btn-donate:disabled {
+      opacity: 0.65;
+      cursor: wait;
+    }
     .btn-donate:active {
       transform: scale(0.97);
       filter: brightness(1.08);
       border-color: rgba(251, 191, 36, 0.75);
+    }
+    .donate-status {
+      margin-top: 10px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: var(--emerald);
+      display: none;
     }
 
     .toast-box {
@@ -550,7 +561,7 @@
         <span>Поддержать автора</span>
         <small>Telegram Stars</small>
       </div>
-      <div class="donate-sub">Выбери количество звёзд или введи своё число (1–2500) — откроется оплата в боте.</div>
+      <div class="donate-sub">Выбери количество звёзд или введи своё число (1–2500) — окно оплаты откроется прямо здесь.</div>
       <div class="star-chips">
         <button type="button" class="star-chip" data-stars="10" onclick="selectStars(10)">10 ⭐</button>
         <button type="button" class="star-chip active" data-stars="25" onclick="selectStars(25)">25 ⭐</button>
@@ -561,6 +572,7 @@
         <input type="number" inputmode="numeric" enterkeyhint="done" id="customStars" min="1" max="2500" value="25" oninput="syncStarChips()" />
         <button type="button" class="btn-donate" id="btnDonate">⭐ Поддержать</button>
       </div>
+      <div class="donate-status" id="donateStatus"></div>
     </div>
   </div>
 
@@ -581,6 +593,7 @@
     }
 
     const BOT_USERNAME = "Voice_master_ai_bot";
+    const INVOICE_API_URL = "https://voicebot-production-44a9176b.up.railway.app/api/invoice";[span_0](start_span)[span_0](end_span)
 
     const COLLECTION_TIERS = [
       { pts: 1000,   name: "Коллекционер-любитель",  color: "#cbd5e1" },
@@ -598,7 +611,7 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v17";
+    const STORAGE_KEY = "mlbb_valuer_state_v18";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
@@ -1113,6 +1126,14 @@
       }
     }
 
+    function setDonateStatus(msg, isError) {
+      const el = $("donateStatus");
+      if (!el) return;
+      el.textContent = msg;
+      el.style.color = isError ? "#fb7185" : "var(--emerald)";
+      el.style.display = msg ? "block" : "none";
+    }
+
     function selectStars(val) {
       if ($("customStars")) $("customStars").value = String(val);
       haptic("light");
@@ -1127,14 +1148,7 @@
       });
     }
 
-    function openDonateInBot() {
-      dismissKeyboard();
-      const raw = parseInt($("customStars") ? $("customStars").value : "25", 10);
-      const amount = (!isNaN(raw) && raw >= 1 && raw <= 2500) ? raw : 25;
-      if ($("customStars")) $("customStars").value = String(amount);
-      syncStarChips();
-      haptic("medium");
-
+    function openBotFallback(amount) {
       const deepLink = `https://t.me/${BOT_USERNAME}?start=donate_${amount}`;
       if (tg && typeof tg.openTelegramLink === "function") {
         try {
@@ -1143,6 +1157,60 @@
         } catch (e) {}
       }
       window.open(deepLink, "_blank");
+    }
+
+    async function openDonateInBot() {
+      dismissKeyboard();
+      const raw = parseInt($("customStars") ? $("customStars").value : "25", 10);
+      if (isNaN(raw) || raw < 1 || raw > 2500) {
+        setDonateStatus("Укажи число звёзд от 1 до 2500.", true);
+        return;
+      }
+      const amount = raw;
+      syncStarChips();
+      haptic("medium");
+
+      const apiUrl = (INVOICE_API_URL || "").trim();
+      const canOpenOverlay = !!(tg && typeof tg.openInvoice === "function" && apiUrl);
+
+      if (!canOpenOverlay) {
+        openBotFallback(amount);
+        return;
+      }
+
+      const btn = $("btnDonate");
+      if (btn) btn.disabled = true;
+      setDonateStatus("Открываю окно оплаты звёздами...", false);
+
+      try {
+        const resp = await fetch(apiUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data || !data.ok || !data.url) {
+          throw new Error("bad_invoice_response");
+        }
+
+        tg.openInvoice(data.url, (status) => {
+          if (btn) btn.disabled = false;
+          if (status === "paid") {
+            setDonateStatus(`Спасибо! Получено ${amount} ⭐.`, false);
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+          } else if (status === "cancelled") {
+            setDonateStatus("Оплата отменена.", false);
+          } else if (status === "failed") {
+            setDonateStatus("Не удалось завершить оплату.", true);
+          } else {
+            setDonateStatus("", false);
+          }
+        });
+      } catch (e) {
+        if (btn) btn.disabled = false;
+        setDonateStatus("Не удалось открыть окно поверх приложения — открываю бота...", true);
+        openBotFallback(amount);
+      }
     }
 
     const submitBtn = $("btnGetCalc");
