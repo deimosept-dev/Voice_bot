@@ -50,7 +50,6 @@
     .header h1 { font-size: 21px; font-weight: 800; letter-spacing: -0.02em; }
     .header p { margin-top: 4px; font-size: 12.5px; color: var(--muted); }
 
-    /* ---------- Цена ---------- */
     .price-box {
       position: sticky;
       top: 8px;
@@ -95,7 +94,6 @@
       border: 1px solid rgba(52, 211, 153, 0.24); white-space: nowrap;
     }
 
-    /* ---------- Карточки ---------- */
     .card {
       background: linear-gradient(180deg, var(--card-bg) 0%, var(--card-bg-2) 100%);
       border: 1px solid var(--line);
@@ -129,7 +127,6 @@
     }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    /* ---------- Звание коллекции (только текст и шкала) ---------- */
     .coll-box {
       padding: 12px 14px; margin-bottom: 12px; border-radius: 18px;
       background: rgba(11, 8, 13, 0.78); border: 1px solid var(--line);
@@ -143,7 +140,6 @@
     .tier-dots { display: flex; justify-content: space-between; gap: 4px; margin: -4px 0 12px; }
     .tier-dot { flex: 1; height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); transition: background 0.3s ease; }
 
-    /* ---------- Облики ---------- */
     .skin-row {
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
       padding: 11px 10px; margin: 0 -4px; border-radius: 16px;
@@ -174,7 +170,6 @@
       text-align: center; font-size: 14px !important; font-weight: 800 !important;
     }
 
-    /* ---------- Чекбоксы ---------- */
     .check-item {
       display: flex; align-items: flex-start; gap: 11px; padding: 11px 12px;
       background: rgba(11, 8, 13, 0.78); border: 1px solid var(--line);
@@ -199,7 +194,6 @@
     .check-text { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
     .check-hint { margin-top: 3px; font-size: 11px; font-weight: 400; color: var(--muted); display: block; }
 
-    /* ---------- Разбивка ---------- */
     details.breakdown summary {
       list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
       font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; color: #fff;
@@ -216,7 +210,6 @@
     .bd-row .neg { color: #fb7185; }
     .bd-row .pos { color: var(--emerald); }
 
-    /* ---------- Футер ---------- */
     .footer-btn {
       position: fixed; bottom: 0; left: 0; right: 0;
       padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
@@ -471,12 +464,13 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v6";
+    const STORAGE_KEY = "mlbb_valuer_state_v8";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
     let lastTierIndex = -1;
     let lastResult = null;
+    let lastParts = null;
 
     const $ = (id) => document.getElementById(id);
     const fmt = (n) => Math.round(n).toLocaleString("ru-RU");
@@ -837,10 +831,8 @@
       $("totalPointsDisplay").textContent = fmt(effectivePoints) + " pts";
       $("segmentLabel").textContent = "Сегмент: " + getSegmentName(effectivePoints, marketPrice);
 
-      renderBreakdown(
-        { basePrice, rareLiquidityBonus, rankBonus, emblemBonus, wrBonus, minApplied },
-        rawTotal, marketPrice
-      );
+      lastParts = { basePrice, rareLiquidityBonus, rankBonus, emblemBonus, wrBonus, minApplied };
+      renderBreakdown(lastParts, rawTotal, marketPrice);
 
       lastResult = {
         market_price: marketPrice,
@@ -862,7 +854,14 @@
         matches: matches,
         moonton_mail: hasMoonton,
         clean_socials: cleanSocials,
-        first_receipt: hasReceipts
+        first_receipt: hasReceipts,
+        parts: {
+          collection_rub: Math.round(basePrice),
+          rare_rub: Math.round(rareLiquidityBonus),
+          rank_rub: Math.round(rankBonus),
+          emblem_rub: Math.round(emblemBonus),
+          winrate_rub: Math.round(wrBonus)
+        }
       };
 
       if (shouldSave) saveState();
@@ -905,7 +904,7 @@
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
         tg.sendData(JSON.stringify(payload));
       } else {
-        alert("Рыночная цена: " + payload.market_price + " ₽\nБыстрая продажа: " + payload.fast_price + " ₽");
+        alert(payload.ad_text);
       }
     }
 
