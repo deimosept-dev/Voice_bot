@@ -7,13 +7,19 @@ from contextlib import closing
 from datetime import datetime, timedelta
 
 from aiogram import Bot, Dispatcher, F
-from aiogram.filters import Command, CommandStart
+from aiogram.filters import Command, CommandObject, CommandStart
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     BotCommand,
-    KeyboardButton,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    LabeledPrice,
     MenuButtonWebApp,
     Message,
-    ReplyKeyboardMarkup,
+    PreCheckoutQuery,
+    ReplyKeyboardRemove,
     WebAppInfo,
 )
 
@@ -49,6 +55,10 @@ SKIN_SPECS = {
     "painted":          ("Окраски для обликов", 40, 4, True),
     "grand_appearance": ("Великолепный облик", 0, 0, False),
 }
+
+
+class DonateStates(StatesGroup):
+    waiting_custom_amount = State()
 
 
 def db():
@@ -191,12 +201,31 @@ def format_valuation_message(res: dict) -> str:
     return "\n\n".join(parts)
 
 
-def main_keyboard() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="🚀 Открыть калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))],
-        ],
-        resize_keyboard=True,
+def stars_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="10 ⭐", callback_data="donate_10"),
+                InlineKeyboardButton(text="25 ⭐", callback_data="donate_25"),
+                InlineKeyboardButton(text="50 ⭐", callback_data="donate_50"),
+                InlineKeyboardButton(text="100 ⭐", callback_data="donate_100"),
+            ],
+            [
+                InlineKeyboardButton(text="✏️ Своё число звёзд", callback_data="donate_custom"),
+            ],
+        ]
+    )
+
+
+async def send_stars_invoice(bot: Bot, chat_id: int, amount: int):
+    amount = max(1, min(2500, int(amount)))
+    await bot.send_invoice(
+        chat_id=chat_id,
+        title="Поддержка проекта",
+        description=f"Добровольная поддержка ({amount} ⭐)",
+        payload=f"stars_support_{amount}",
+        currency="XTR",
+        prices=[LabeledPrice(label=f"{amount} звёзд", amount=amount)],
     )
 
 
@@ -204,16 +233,35 @@ dp = Dispatcher()
 
 
 @dp.message(CommandStart())
-async def cmd_start(message: Message):
+async def cmd_start(message: Message, command: CommandObject, state: FSMContext, bot: Bot):
+    await state.clear()
     if message.from_user:
         log_action(message.from_user.id, "start")
+
+    arg = (command.args or "").strip() if command else ""
+    if arg.startswith("donate_"):
+        raw = arg.replace("donate_", "", 1)
+        if raw == "custom":
+            await state.set_state(DonateStates.waiting_custom_amount)
+            await message.answer(
+                "Введи количество звёзд числом (от 1 до 2500):",
+                reply_markup=ReplyKeyboardRemove(),
+            )
+            return
+        if raw.isdigit():
+            val = int(raw)
+            if 1 <= val <= 2500:
+                await message.answer("Готовлю счёт...", reply_markup=ReplyKeyboardRemove())
+                await send_stars_invoice(bot, message.chat.id, val)
+                return
+
     await message.answer(
         "👋 <b>Привет! Это калькулятор стоимости аккаунтов MLBB.</b>\n\n"
-        "Нажми кнопку <b>«🚀 Открыть калькулятор»</b> внизу, укажи очки коллекции, "
+        "Открой калькулятор через кнопку <b>«Калькулятор»</b> в меню, укажи очки коллекции, "
         "ранг, винрейт и облики — и получи расчёт с рыночной ценой и быстрой продажей.\n\n"
         "Справка по расчёту: /help",
         parse_mode="HTML",
-        reply_markup=main_keyboard(),
+        reply_markup=ReplyKeyboardRemove(),
     )
 
 
@@ -229,8 +277,62 @@ async def cmd_help(message: Message):
         "• <b>Винрейт и матчи:</b> бонус начисляется при винрейте выше <b>60%</b> с учётом числа ранговых матчей.\n"
         "• <b>Вилка цен:</b> показываем ориентир рыночной оценки и цену быстрой продажи (-15%).",
         parse_mode="HTML",
-        reply_markup=main_keyboard(),
+        reply_markup=ReplyKeyboardRemove(),
     )
+
+
+@dp.message(Command("donate"))
+async def cmd_donate(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(
+        "⭐ <b>Поддержка проекта</b>\n\nВыбери количество звёзд:",
+        parse_mode="HTML",
+        reply_markup=stars_keyboard(),
+    )
+
+
+@dp.callback_query(F.data == "donate_custom")
+async def cb_donate_custom(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(DonateStates.waiting_custom_amount)
+    await callback.answer()
+    await callback.message.answer("Напиши целое число звёзд (от 1 до 2500):")
+
+
+@dp.message(DonateStates.waiting_custom_amount)
+async def process_custom_amount(message: Message, state: FSMContext, bot: Bot):
+    text = (message.text or "").strip()
+    if not text.isdigit():
+        await message.answer("Нужно ввести обычное число от 1 до 2500, например: 35")
+        return
+    amount = int(text)
+    if amount < 1 or amount > 2500:
+        await message.answer("Число должно быть от 1 до 2500. Попробуй ещё раз:")
+        return
+    await state.clear()
+    await send_stars_invoice(bot, message.chat.id, amount)
+
+
+@dp.callback_query(F.data.startswith("donate_"))
+async def cb_donate_fixed(callback: CallbackQuery, bot: Bot):
+    raw = callback.data.split("_", 1)[1]
+    if not raw.isdigit():
+        await callback.answer()
+        return
+    await callback.answer()
+    await send_stars_invoice(bot, callback.message.chat.id, int(raw))
+
+
+@dp.pre_checkout_query()
+async def on_pre_checkout(pre_checkout_query: PreCheckoutQuery):
+    await pre_checkout_query.answer(ok=True)
+
+
+@dp.message(F.successful_payment)
+async def on_successful_payment(message: Message):
+    stars = message.successful_payment.total_amount
+    if message.from_user:
+        log_action(message.from_user.id, f"donate_stars_{stars}")
+    await message.answer(f"Спасибо за поддержку! Получено {stars} ⭐.")
 
 
 @dp.message(F.web_app_data)
@@ -244,13 +346,13 @@ async def handle_webapp(message: Message):
         res = build_valuation(d)
         answer = format_valuation_message(res)
 
-        await message.answer(answer, parse_mode="HTML", reply_markup=main_keyboard())
+        await message.answer(answer, parse_mode="HTML", reply_markup=ReplyKeyboardRemove())
         if message.from_user:
             log_action(message.from_user.id, "calculated_manual", estimated_price=res["total_price"])
 
     except Exception as e:
         print("WebApp error:", e)
-        await message.answer("❌ Не удалось выполнить расчёт. Попробуй ещё раз.", reply_markup=main_keyboard())
+        await message.answer("❌ Не удалось выполнить расчёт. Попробуй ещё раз.", reply_markup=ReplyKeyboardRemove())
 
 
 @dp.message(Command("admin"))
@@ -298,6 +400,7 @@ async def setup_bot_ui(bot: Bot):
     await bot.set_my_commands([
         BotCommand(command="start", description="Открыть калькулятор и приветствие"),
         BotCommand(command="help", description="Как работает расчёт стоимости"),
+        BotCommand(command="donate", description="Поддержать проект звёздами"),
     ])
     try:
         await bot.set_chat_menu_button(
