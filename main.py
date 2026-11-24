@@ -8,7 +8,14 @@ from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandStart
-from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup, WebAppInfo
+from aiogram.types import (
+    BotCommand,
+    KeyboardButton,
+    MenuButtonWebApp,
+    Message,
+    ReplyKeyboardMarkup,
+    WebAppInfo,
+)
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DB_PATH = os.getenv("DB_PATH", "bot.db")
@@ -177,6 +184,15 @@ def format_valuation_message(res: dict) -> str:
     return "\n\n".join(parts)
 
 
+def main_keyboard() -> ReplyKeyboardMarkup:
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🚀 Открыть калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))],
+        ],
+        resize_keyboard=True,
+    )
+
+
 dp = Dispatcher()
 
 
@@ -184,14 +200,29 @@ dp = Dispatcher()
 async def cmd_start(message: Message):
     if message.from_user:
         log_action(message.from_user.id, "start")
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text="🚀 Открыть калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))]],
-        resize_keyboard=True,
-    )
     await message.answer(
-        "👋 Привет! Нажми кнопку внизу, чтобы открыть калькулятор MLBB.\n\n"
-        "Укажи очки коллекции, ранг и облики — я рассчитаю примерную стоимость.",
-        reply_markup=kb,
+        "👋 <b>Привет! Это калькулятор стоимости аккаунтов MLBB.</b>\n\n"
+        "Нажми кнопку <b>«🚀 Открыть калькулятор»</b> внизу, укажи очки коллекции, "
+        "ранг, винрейт и облики — и получи расчёт с рыночной ценой и быстрой продажей.\n\n"
+        "Справка по расчёту: /help",
+        parse_mode="HTML",
+        reply_markup=main_keyboard(),
+    )
+
+
+@dp.message(Command("help"))
+async def cmd_help(message: Message):
+    if message.from_user:
+        log_action(message.from_user.id, "help")
+    await message.answer(
+        "ℹ️ <b>Как считается стоимость аккаунта</b>\n\n"
+        "• <b>База:</b> пустой аккаунт без очков коллекции и параметров оценивается в <b>0 ₽</b>.\n"
+        "• <b>Коллекция и облики:</b> учитывается большее значение между очками коллекции и суммой по выбранным обликам, чтобы очки не считались дважды.\n"
+        "• <b>Ранг:</b> добавляет фиксированную надбавку за наивысшее достижение.\n"
+        "• <b>Винрейт и матчи:</b> бонус начисляется при винрейте выше <b>60%</b> с учётом числа ранговых матчей.\n"
+        "• <b>Вилка цен:</b> показываем ориентир рыночной оценки и цену быстрой продажи (-15%).",
+        parse_mode="HTML",
+        reply_markup=main_keyboard(),
     )
 
 
@@ -206,13 +237,13 @@ async def handle_webapp(message: Message):
         res = build_valuation(d)
         answer = format_valuation_message(res)
 
-        await message.answer(answer, parse_mode="HTML")
+        await message.answer(answer, parse_mode="HTML", reply_markup=main_keyboard())
         if message.from_user:
             log_action(message.from_user.id, "calculated_manual")
 
     except Exception as e:
         print("WebApp error:", e)
-        await message.answer("❌ Не удалось выполнить расчёт. Попробуй ещё раз.")
+        await message.answer("❌ Не удалось выполнить расчёт. Попробуй ещё раз.", reply_markup=main_keyboard())
 
 
 @dp.message(Command("admin"))
@@ -223,11 +254,24 @@ async def cmd_admin(message: Message):
         total_users = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         total_calcs = conn.execute("SELECT COUNT(*) FROM stats WHERE action='calculated_manual'").fetchone()[0]
     await message.answer(
-        f"📊 <b>Статистика:</b>\n\n"
-        f"👥 Пользователей: {total_users}\n"
-        f"💰 Сделали расчёт: {total_calcs}",
+        f"📊 <b>Статистика бота</b>\n\n"
+        f"👥 Пользователей: <b>{total_users}</b>\n"
+        f"💰 Сделали расчёт: <b>{total_calcs}</b>",
         parse_mode="HTML",
     )
+
+
+async def setup_bot_ui(bot: Bot):
+    await bot.set_my_commands([
+        BotCommand(command="start", description="Открыть калькулятор и приветствие"),
+        BotCommand(command="help", description="Как работает расчёт стоимости"),
+    ])
+    try:
+        await bot.set_chat_menu_button(
+            menu_button=MenuButtonWebApp(text="Калькулятор", web_app=WebAppInfo(url=WEBAPP_URL))
+        )
+    except Exception as e:
+        print("Menu button setup warning:", e)
 
 
 async def main():
@@ -236,6 +280,7 @@ async def main():
         return
     init_db()
     bot = Bot(BOT_TOKEN)
+    await setup_bot_ui(bot)
     print("🚀 Бот-калькулятор запущен!")
     await dp.start_polling(bot)
 
