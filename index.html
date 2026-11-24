@@ -596,8 +596,6 @@
       return total;
     }
 
-    // На FunPay доплачивают только за высокий уровень (46–60) в бюджетном/среднем сегменте;
-    // на дорогих аккаунтах фулл эмблемы уже подразумеваются по умолчанию.
     function calcEmblemBonus(lvl, pts, prelimPrice) {
       if (!lvl || lvl <= 45) return 0;
       const ratio = (lvl - 45) / 15;
@@ -839,6 +837,28 @@
         alert("Рыночная цена: " + payload.market_price + " ₽\nБыстрая продажа: " + payload.fast_price + " ₽");
       }
     }
+
+    document.addEventListener("pointerdown", (e) => {
+      const active = document.activeElement;
+      if (!active || !/^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+      if (e.target.closest("input, textarea, select, button, .counter, label.check-item")) return;
+      active.blur();
+    }, { passive: true });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const active = document.activeElement;
+        if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) {
+          e.preventDefault();
+          active.blur();
+        }
+      }
+    });
+
+    ["collectionPoints", "totalSkins", "emblemLevel", "winrate", "matches"].forEach((id) => {
+      const el = $(id);
+      if (el) el.setAttribute("enterkeyhint", "done");
+    });
 
     /* ===== Старт ===== */
     buildTierDots();
