@@ -492,7 +492,7 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v10";
+    const STORAGE_KEY = "mlbb_valuer_state_v11";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
@@ -955,11 +955,11 @@
       const box = $("toastBox");
       if (box) {
         $("toastTitle").textContent = copied
-          ? "Расчёт сформирован и скопирован"
-          : "Расчёт сформирован";
+          ? "Отчёт скопирован автоматически"
+          : "Отчёт готов";
         $("toastDesc").textContent = copied
-          ? "Текст уже в буфере обмена — если бот не ответил сам, вставь его в чат."
-          : "Скопируй текст ниже и отправь в чат:";
+          ? "Текст уже в буфере обмена — вставь его в чат или объявление."
+          : "Скопируй текст ниже и вставь в чат:";
         $("toastPreview").textContent = reportText;
         box.style.display = "block";
       }
