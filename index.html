@@ -462,7 +462,7 @@
 
   <div class="footer-btn">
     <div class="footer-inner">
-      <button type="button" class="btn-submit" onclick="sendToBot()">Получить точный расчёт</button>
+      <button type="button" class="btn-submit" id="btnGetCalc">Получить точный расчёт</button>
     </div>
   </div>
 
@@ -492,7 +492,7 @@
       "cntEpic", "cntExceptional", "cntCommon", "rankSelect", "emblemLevel",
       "winrate", "matches", "chkMoonton", "chkCleanSocials", "chkFirstReceipt"
     ];
-    const STORAGE_KEY = "mlbb_valuer_state_v9";
+    const STORAGE_KEY = "mlbb_valuer_state_v10";
     const WIN_NAME_PREFIX = "MLBB_VALUER_STATE:";
 
     const shown = { market: 0, fast: 0 };
@@ -918,52 +918,68 @@
       return lines.join("\n");
     }
 
-    async function copyTextSafe(text) {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-          return true;
-        }
-      } catch (e) {}
+    function copyTextNow(text) {
+      let ok = false;
       try {
         const ta = document.createElement("textarea");
         ta.value = text;
+        ta.setAttribute("readonly", "");
         ta.style.position = "fixed";
+        ta.style.top = "0";
+        ta.style.left = "0";
         ta.style.opacity = "0";
         document.body.appendChild(ta);
+        ta.focus();
         ta.select();
-        document.execCommand("copy");
+        ta.setSelectionRange(0, text.length);
+        ok = document.execCommand("copy");
         document.body.removeChild(ta);
-        return true;
-      } catch (e) {
-        return false;
+      } catch (e) {}
+
+      if (!ok && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        try {
+          navigator.clipboard.writeText(text);
+          ok = true;
+        } catch (e) {}
       }
+      return ok;
     }
 
-    async function sendToBot() {
+    function sendToBot() {
       dismissKeyboard();
       const payload = recalc(true);
       const reportText = buildAd();
       payload.ad_text = reportText;
 
+      const copied = copyTextNow(reportText);
+      const box = $("toastBox");
+      if (box) {
+        $("toastTitle").textContent = copied
+          ? "Расчёт сформирован и скопирован"
+          : "Расчёт сформирован";
+        $("toastDesc").textContent = copied
+          ? "Текст уже в буфере обмена — если бот не ответил сам, вставь его в чат."
+          : "Скопируй текст ниже и отправь в чат:";
+        $("toastPreview").textContent = reportText;
+        box.style.display = "block";
+      }
+
       if (tg) {
-        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+        try {
+          if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+        } catch (e) {}
         try {
           tg.sendData(JSON.stringify(payload));
         } catch (e) {}
       }
+    }
 
-      const copied = await copyTextSafe(reportText);
-      const box = $("toastBox");
-      $("toastTitle").textContent = copied
-        ? "Расчёт скопирован в буфер обмена"
-        : "Готовый расчёт";
-      $("toastDesc").textContent = copied
-        ? "Если окно не закрылось автоматически, вставь готовый текст в чат бота."
-        : "Скопируй текст ниже и отправь в чат бота:";
-      $("toastPreview").textContent = reportText;
-      box.style.display = "block";
-      box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const submitBtn = $("btnGetCalc");
+    if (submitBtn) {
+      submitBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        sendToBot();
+      });
     }
 
     document.addEventListener("click", (e) => dismissKeyboard(e.target));
